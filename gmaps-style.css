@@ -153,6 +153,34 @@ button {
     background: rgba(0, 0, 0, 0.04);
 }
 
+/* --- MAP TYPE TOGGLE (Map/Satellite) --- */
+.gmaps-view-toggle {
+    display: flex;
+    background: var(--gmaps-bg);
+    border-radius: 4px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.gmaps-view-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gmaps-text-secondary);
+    border-radius: 4px;
+    transition: all var(--trans-fast);
+}
+
+.gmaps-view-btn.active {
+    background: var(--gmaps-white);
+    color: var(--gmaps-blue);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.gmaps-view-btn:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.04);
+}
+
 /* --- AVATAR BUTTON --- */
 .gmaps-avatar-btn {
     width: 40px;

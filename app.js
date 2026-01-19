@@ -132,6 +132,37 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Map Type Toggle (Map/Satellite)
+window.setMapType = function (type) {
+    if (map) {
+        map.setMapTypeId(type);
+
+        // Update button states
+        const mapBtn = document.getElementById('view-map-btn');
+        const satBtn = document.getElementById('view-sat-btn');
+
+        if (type === 'roadmap') {
+            mapBtn.classList.add('active');
+            satBtn.classList.remove('active');
+        } else {
+            satBtn.classList.add('active');
+            mapBtn.classList.remove('active');
+        }
+    }
+};
+
+// Profile Avatar Click
+document.addEventListener('DOMContentLoaded', () => {
+    const avatarBtn = document.getElementById('avatar-btn');
+    if (avatarBtn) {
+        avatarBtn.addEventListener('click', () => {
+            if (typeof ProfileSystem !== 'undefined') {
+                ProfileSystem.open();
+            }
+        });
+    }
+});
+
 
 
 // --- PLAYER STATE ---
