@@ -156,10 +156,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatarBtn = document.getElementById('avatar-btn');
     if (avatarBtn) {
         avatarBtn.addEventListener('click', () => {
-            if (typeof ProfileSystem !== 'undefined') {
+            console.log('Avatar clicked!');
+            if (typeof ProfileSystem !== 'undefined' && ProfileSystem.open) {
+                console.log('Opening ProfileSystem...');
                 ProfileSystem.open();
+            } else {
+                console.error('ProfileSystem not loaded or open function not available');
+                // Fallback: show profile creation modal if first time
+                const modal = document.getElementById('profile-creation-modal');
+                if (modal && !window.playerState.username) {
+                    modal.classList.remove('hidden');
+                } else if (modal) {
+                    // Show profile overlay directly
+                    const overlay = document.getElementById('profile-overlay');
+                    if (overlay) {
+                        overlay.classList.remove('hidden');
+                    }
+                }
             }
         });
+    } else {
+        console.error('Avatar button not found');
     }
 });
 
