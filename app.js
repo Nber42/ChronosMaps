@@ -7,9 +7,132 @@ let speechSynth = window.speechSynthesis;
 let currentUtterance = null;
 let userPosition = null;
 
+// Google Maps UI State
+let is3DView = false;
+let trafficLayer, transitLayer, bicyclingLayer;
+
 // Configuration
 const DEFAULT_LOCATION = [41.406144, 2.162536];
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
+
+// ============================================
+// GOOGLE MAPS UI CONTROLS
+// ============================================
+
+// Hamburger Menu Toggle
+window.toggleDrawer = function () {
+    const drawer = document.getElementById('drawer');
+    drawer.classList.toggle('open');
+};
+
+window.closeDrawer = function () {
+    const drawer = document.getElementById('drawer');
+    drawer.classList.remove('open');
+};
+
+// Setup hamburger button
+document.addEventListener('DOMContentLoaded', () => {
+    const menuBtn = document.getElementById('menu-btn');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => toggleDrawer());
+    }
+
+    const closeDrawerBtn = document.getElementById('close-drawer');
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', () => closeDrawer());
+    }
+});
+
+// Zoom Controls
+window.zoomIn = function () {
+    if (map) {
+        map.setZoom(map.getZoom() + 1);
+    }
+};
+
+window.zoomOut = function () {
+    if (map) {
+        map.setZoom(map.getZoom() - 1);
+    }
+};
+
+// My Location
+window.goToMyLocation = function () {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            map.setCenter(pos);
+            map.setZoom(16);
+        });
+    }
+};
+
+// 3D View Toggle
+window.toggle3DView = function () {
+    is3DView = !is3DView;
+    const toggleBtn = document.getElementById('view-toggle');
+    const label = toggleBtn.querySelector('.gmaps-3d-label');
+
+    if (is3DView) {
+        map.setTilt(45);
+        label.textContent = '3D';
+    } else {
+        map.setTilt(0);
+        label.textContent = '2D';
+    }
+};
+
+// Layers Menu Toggle
+window.toggleLayersMenu = function () {
+    const menu = document.getElementById('layers-menu');
+    menu.classList.toggle('hidden');
+};
+
+// Layer Toggles
+window.toggleTrafficLayer = function (enabled) {
+    if (!trafficLayer) {
+        trafficLayer = new google.maps.TrafficLayer();
+    }
+    trafficLayer.setMap(enabled ? map : null);
+};
+
+window.toggleTransitLayer = function (enabled) {
+    if (!transitLayer) {
+        transitLayer = new google.maps.TransitLayer();
+    }
+    transitLayer.setMap(enabled ? map : null);
+};
+
+window.toggleBicyclingLayer = function (enabled) {
+    if (!bicyclingLayer) {
+        bicyclingLayer = new google.maps.BicyclingLayer();
+    }
+    bicyclingLayer.setMap(enabled ? map : null);
+};
+
+window.toggleChronosMarkers = function (enabled) {
+    // TODO: Show/hide historical markers
+    console.log('Chronos markers:', enabled);
+};
+
+window.toggleRareOnly = function (enabled) {
+    // TODO: Filter to show only rare/legendary markers
+    console.log('Rare only:', enabled);
+};
+
+// Close layers menu when clicking outside
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('layers-menu');
+    const btn = document.getElementById('layers-btn');
+    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+
 
 // --- PLAYER STATE ---
 // --- PLAYER STATE ---
