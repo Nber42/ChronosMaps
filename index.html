@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Chronos Maps | Explorador Viral</title>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <!-- Search Bar -->
+        <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"
+                style="position:absolute; left:20px; top:16px; color:#9ca3af;"></i>
+            <input type="text" id="search-input" class="search-input" style="padding-left:48px;"
+                placeholder="Buscar ciudad o lugar...">
+        </div>
+
+        <!-- Info Display Area (Dynamic Content) -->
+        <div id="info-display">
+            <!-- Initial Empty State -->
+            <div id="initial-state" class="empty-state">
+                <div class="pulse-ring"></div>
+                <i class="fa-solid fa-map-location-dot fa-2x" style="color:#d1d5db; margin-bottom:12px;"></i>
+                <p>Toca el mapa para comenzar tu aventura.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Profile Creation Modal (Onboarding) -->
+    <div id="profile-creation-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2 class="modal-title">Nueva Identidad</h2>
+            <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Crea tu tarjeta de explorador para guardar tus
+                hallazgos.</p>
+
+            <div class="avatar-grid">
+                <div class="avatar-option" onclick="selectAvatar('🤠')">🤠</div>
+                <div class="avatar-option" onclick="selectAvatar('👩‍🚀')">👩‍🚀</div>
+                <div class="avatar-option" onclick="selectAvatar('🕵️‍♀️')">🕵️‍♀️</div>
+                <div class="avatar-option" onclick="selectAvatar('🧙‍♂️')">🧙‍♂️</div>
+            </div>
+
+            <input type="text" id="username-input" class="modal-input" placeholder="Nombre de Agente" maxlength="12">
+            <button class="action-btn btn-primary" onclick="saveProfile()">
+                Registrar Licencia <i class="fa-solid fa-check"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Trainer Card Modal REMOVED (Legacy) -->
+
+    <!-- Chronedex Modal -->
+    <div id="chronedex-modal" class="modal-overlay hidden">
+        <div class="modal-card wide">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fa-solid fa-book-journal-whills" style="color:#f59e0b;"></i> Chronedex
+                </h2>
+                <button class="close-btn" onclick="closeChronedex()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Tu colección de descubrimientos históricos.
+            </div>
+            <div id="chronedex-grid" class="chronedex-grid">
+                <!-- Items injected via JS -->
+            </div>
+        </div>
+        <!-- Tours Modal -->
+        <div id="tours-modal" class="modal-overlay hidden">
+            <div class="modal-card wide">
+                <div class="modal-header">
+                    <h2 class="modal-title"><i class="fa-solid fa-route" style="color:#8b5cf6;"></i> Rutas Guiadas</h2>
+                    <button class="close-btn" onclick="TourSystem.closeModal()"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Explora Barcelona con nuestras rutas
+                    curadas.</div>
+                <div id="tours-grid" class="tours-grid">
+                    <!-- Items injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- FontAwesome -->
+        <script src="https://kit.fontawesome.com/136732976d.js" crossorigin="anonymous"></script>
+
+        <!-- Dependencies -->
+        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+        <!-- Profile System Overlay -->
+        <div id="profile-overlay" class="profile-overlay hidden">
+            <!-- Top Bar -->
+            <div class="profile-header-nav">
+                <button class="icon-btn-glass" onclick="ProfileSystem.close()"><i class="fa-solid fa-arrow-left"></i>
+                    Volver</button>
+                <div style="flex:1"></div>
+                <button class="icon-btn-glass"><i class="fa-solid fa-gear"></i></button>
+            </div>
+
+            <!-- Hero Section -->
+            <div class="profile-hero">
+                <div id="p-avatar-container" class="p-avatar-wrapper border-bronze">
+                    <span id="p-avatar">🤠</span>
+                    <div class="online-indicator"></div>
+                </div>
+
+                <div class="p-identity">
+                    <h1 id="p-username">@Explorador</h1>
+                    <div id="p-title" class="p-title-badge">Novato</div>
+                    <div class="p-bio-box">
+                        <p id="p-bio">Explorando el mundo... 🌍</p>
+                        <small id="p-joined">📅 Ene 2026</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Progress -->
+            <div class="level-section">
+                <div class="level-info-row">
+                    <span id="p-level-display" style="font-weight:900; color:#f59e0b">NIVEL 1</span>
+                    <span id="p-xp-text" style="font-size:12px; color:#9ca3af">0 / 1000 XP</span>
+                </div>
+                <div class="xp-bar-bg">
+                    <div id="p-xp-bar" class="xp-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="quick-stats-row">
+                <div class="q-stat">
+                    <span id="stat-count-places" class="q-val">0</span>
+                    <span class="q-label">Lugares</span>
+                </div>
+                <div class="q-stat">
+                    <span id="stat-count-checkins" class="q-val">0</span>
+                    <span class="q-label">Check-ins</span>
+                </div>
+                <div class="q-stat">
+                    <span id="stat-count-streak" class="q-val">1d</span>
+                    <span class="q-label">Racha</span>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="profile-tabs">
+                <button class="profile-tab-btn active" data-tab="discoveries">Descubrimientos</button>
+                <button class="profile-tab-btn" data-tab="badges">Insignias</button>
+                <button class="profile-tab-btn" data-tab="stats">Estadísticas</button>
+            </div>
+
+            <!-- Tab Content Area -->
+            <div class="profile-content-scroll">
+                <div id="tab-discoveries" class="profile-tab-content">
+                    <!-- Injected via JS -->
+                </div>
+                <div id="tab-badges" class="profile-tab-content hidden">
+                    <!-- Injected via JS -->
+                </div>
+                <div id="tab-stats" class="profile-tab-content hidden">
+                    <div style="text-align:center; padding:40px; color:#6b7280;">
+                        <h3>📊 Análisis Avanzado</h3>
+                        <p>Próximamente disponible.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- App Logic -->
+        <script src="curated_content.js"></script>
+        <script src="audio_fx.js"></script>
+        <script src="profile.js"></script>
+        <script src="tours.js"></script>
+        <script src="app.js"></script>
+
+        <!-- Google Maps API (Async) -->
+        <script>
+            // Callback helper to trigger initMap from app.js once loaded
+            function googleMapsCallback() {
+                if (window.initApp) window.initApp();
+            }
+
+            // Global Handler for Auth Failures (Invalid Key, No Billing, etc.)
+            window.gm_authFailure = function () {
+                const mapDiv = document.getElementById('map');
+                mapDiv.innerHTML = `
+                <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111827; color:white; padding:20px; text-align:center; z-index:9999; position:relative;">
+                    <i class="fa-solid fa-triangle-exclamation fa-3x" style="color:#ef4444; margin-bottom:20px;"></i>
+                    <h2 style="margin:0 0 10px 0;">Error de Configuración de Google Maps</h2>
+                    <p style="color:#9ca3af; max-width:400px; margin-bottom:20px;">
+                        La clave API proporcionada no es válida o tiene restricciones.
+                    </p>
+                    <div style="background:#1f2937; padding:15px; border-radius:8px; text-align:left; font-size:13px; max-width:400px;">
+                        <strong>Posibles Causas:</strong><br>
+                        1. 💳 <b>Facturación no habilitada:</b> Debes vincular una tarjeta en Google Cloud Console.<br>
+                        2. 🌐 <b>Restricciones Web:</b> Si usas <code>file://</code> o <code>localhost</code>, asegúrate de que tu clave lo permita.<br>
+                        3. 🔌 <b>API Apagada:</b> Verifica que "Maps JavaScript API" esté habilitada.
+                    </div>
+                </div>
+            `;
+                console.error("CHRONOS DEBUG: Google Maps Auth Failure triggered.");
+            };
+        </script>
+        <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt3-_T5sn-4xua9SdE7D7ENrXly3R4qAo&loading=async&v=weekly&callback=googleMapsCallback">
+            </script>
+</body>
+
+</html>
