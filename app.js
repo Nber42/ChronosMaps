@@ -509,7 +509,64 @@ async function handleMapClick(lat, lng) {
     showLoading();
     stopAudio();
 
-    // 1. CHECK CURATED CONTENT FIRST
+    // Use Google Places Nearby Search to find the place at these coordinates
+    const location = new google.maps.LatLng(lat, lng);
+
+    // First, try to find a nearby place
+    if (typeof placesService !== 'undefined' && placesService) {
+        const request = {
+            location: location,
+            radius: 50, // 50 meters radius
+            fields: ['place_id', 'name', 'geometry']
+        };
+
+        placesService.nearbySearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                // Found a place! Get its full details with photos
+                getPlaceDetails(results[0].place_id, (place) => {
+                    if (place) {
+                        // Show place in side panel with real Google photos
+                        showPlaceInPanel(place);
+
+                        // Add to Chronedex
+                        const data = {
+                            nombre: place.name,
+                            lat: lat,
+                            lng: lng,
+                            rarity: determineRarity(),
+                            imagen_real: place.photos && place.photos.length > 0 ? place.photos[0].getUrl({ maxWidth: 400 }) : null,
+                            direccion: place.formatted_address
+                        };
+
+                        if (!hasDiscovered(lat, lng)) {
+                            if (typeof SoundFX !== 'undefined') SoundFX.playDiscovery(data.rarity);
+                            awardXP(data.rarity);
+                            addToChronedex(data);
+                            triggerConfetti(data.rarity === RARITY.LEGENDARY);
+                            playerState.stats.discoveries++;
+                            if (data.rarity === RARITY.LEGENDARY) playerState.stats.legendaries++;
+                            checkAchievements();
+                            savePlayerState();
+                        }
+                    } else {
+                        // Fallback to old method
+                        handleMapClickFallback(lat, lng);
+                    }
+                });
+            } else {
+                // No place found nearby, use fallback
+                handleMapClickFallback(lat, lng);
+            }
+        });
+    } else {
+        // Places service not ready, use fallback
+        handleMapClickFallback(lat, lng);
+    }
+}
+
+// Fallback function for when Google Places doesn't find anything
+async function handleMapClickFallback(lat, lng) {
+    // Original logic using Nominatim/Wikipedia
     const curated = (typeof findCuratedStory !== 'undefined') ? findCuratedStory(lat, lng) : null;
 
     let data = {
@@ -520,19 +577,15 @@ async function handleMapClick(lat, lng) {
     };
 
     if (curated) {
-        // use curated data
         data.nombre = curated.title;
-        data.informacion_historica = curated.text; // Rich HTML text
-        data.rarity = RARITY.LEGENDARY; // Curated is always Legendary
-        data.verified = true; // Flag for UI
+        data.informacion_historica = curated.text;
+        data.rarity = RARITY.LEGENDARY;
+        data.verified = true;
 
-        // Still fetch image/address if needed
         const geoData = await reverseGeocode(lat, lng);
         if (geoData) data.direccion = geoData.display_name;
-        data.imagen_real = await fetchWikiImage(curated.title.split(':')[0]); // Fuzzy search title
-
+        data.imagen_real = await fetchWikiImage(curated.title.split(':')[0]);
     } else {
-        // Standard Fetch Logic
         try {
             const geoData = await reverseGeocode(lat, lng);
             if (geoData) {
@@ -548,19 +601,17 @@ async function handleMapClick(lat, lng) {
             data.informacion_historica = wikiText;
             data.resumen = wikiText ? truncateText(wikiText, 180) : "Información no disponible.";
             data.imagen_real = await fetchWikiImage(data.nombre);
-        } catch (error) { console.error(error); displayError("No info."); }
+        } catch (error) {
+            console.error(error);
+            displayError("No info.");
+        }
     }
 
-    // SAVE & ACHIEVEMENTS
     if (!hasDiscovered(lat, lng)) {
-        // AUDIO TRIGGER
         if (typeof SoundFX !== 'undefined') SoundFX.playDiscovery(data.rarity);
-
         awardXP(data.rarity);
         addToChronedex(data);
         triggerConfetti(data.rarity === RARITY.LEGENDARY);
-
-        // Check stats
         playerState.stats.discoveries++;
         if (data.rarity === RARITY.LEGENDARY) playerState.stats.legendaries++;
         checkAchievements();
