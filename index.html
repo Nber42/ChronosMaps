@@ -8,10 +8,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
+    <!-- Version: 1.0.1 - Satellite Update -->
     <!-- Production URL: https://nber42.github.io/ChronosMaps/ -->
     <link rel="canonical" href="https://nber42.github.io/ChronosMaps/">
 
     <title>Chronos Maps | Explorador Viral</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https: data:; script-src 'self' https://maps.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 
 
     <!-- Google Fonts: Google Sans -->
@@ -21,336 +26,574 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <!-- Font Awesome (for legacy icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
 
-    <!-- Google Maps Clone Styles -->
-    <link rel="stylesheet" href="gmaps-style.css">
-    <!-- Chronodex Styles -->
-    <link rel="stylesheet" href="chronodex.css">
-    <link rel="stylesheet" href="tours.css">
     <!-- Legacy Styles (kept for compatibility) -->
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="poi_card.css">
+
+    <!-- Feature Styles (should override legacy) -->
+    <link rel="stylesheet" href="gmaps-style.css">
+    <link rel="stylesheet" href="game-styles.css">
+    <link rel="stylesheet" href="gmaps-style-dropdown-patch.css">
+    <link rel="stylesheet" href="gmaps-style-reviews.css">
+    <link rel="stylesheet" href="gmaps-style-directions.css">
+    <link rel="stylesheet" href="nearby-scanner.css">
+    <link rel="stylesheet" href="chronodex.css">
+    <link rel="stylesheet" href="tours.css">
+    <link rel="stylesheet" href="profile.css">
+    <link rel="stylesheet" href="ai-styles.css">
+    <link rel="stylesheet" href="auth-styles.css">
+    <link rel="stylesheet" href="security-styles.css">
 </head>
 
-<!-- Loading Screen -->
-<div id="loading-screen" class="loading-screen">
-    <div class="loading-content">
-        <span class="loading-logo">⏱️</span>
-        <h1 class="loading-title">Chronos Maps</h1>
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Cargando mapa...</p>
-    </div>
-</div>
-
-<!-- GOOGLE MAPS LAYOUT -->
-
-<!-- Header Bar (Google Maps style) -->
-<header class="gmaps-header">
-    <!-- Hamburger Menu -->
-    <button class="gmaps-menu-btn" id="menu-btn" aria-label="Menu">
-        <span class="material-icons">menu</span>
-    </button>
-
-    <!-- Logo & Title -->
-    <div class="gmaps-logo">
-        <span class="gmaps-logo-icon">⏱️</span>
-        <span class="gmaps-title">Chronos Maps</span>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="gmaps-search-container">
-        <span class="material-icons gmaps-search-icon">search</span>
-        <input type="text" id="gmaps-search-input" class="gmaps-search-input" placeholder="Buscar en Chronos Maps"
-            autocomplete="off" />
-        <button class="gmaps-voice-btn" aria-label="Búsqueda por voz">
-            <span class="material-icons">mic</span>
-        </button>
-    </div>
-
-    <!-- Map Type Toggle -->
-    <div class="gmaps-view-toggle">
-        <button class="gmaps-view-btn active" id="view-map-btn" onclick="setMapType('roadmap')">Mapa</button>
-        <button class="gmaps-view-btn" id="view-sat-btn" onclick="setMapType('satellite')">Satélite</button>
-    </div>
-
-    <!-- User Avatar -->
-    <div class="profile-avatar-modern" id="avatar-btn" onclick="handleProfileClick()">
-        <svg viewBox="0 0 100 100" class="avatar-svg">
-            <defs>
-                <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                </linearGradient>
-            </defs>
-            <circle cx="50" cy="50" r="48" fill="url(#avatarGradient)" />
-            <text x="50" y="58" id="header-avatar-emoji" font-size="40" text-anchor="middle"
-                font-family="Arial, sans-serif">🤠</text>
-        </svg>
-        <div class="level-badge-modern">
-            <span class="level-number" id="header-level-badge">1</span>
-            <svg class="level-icon" viewBox="0 0 24 24" width="10" height="10">
-                <path fill="white"
-                    d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />
-            </svg>
-        </div>
-    </div>
-</header>
-
-<!-- Side Panel (Drawer) -->
-<aside class="gmaps-side-panel" id="side-panel">
-    <div id="panel-back-nav" class="panel-back-nav hidden">
-        <button class="back-button" onclick="goBack()">
-            <span class="material-icons">arrow_back</span>
-            <span>Volver</span>
-        </button>
-    </div>
-    <div class="gmaps-panel-content" id="panel-content">
-        <!-- Content injected dynamically -->
-        <div class="gmaps-panel-empty">
-            <span class="material-icons gmaps-empty-icon">place</span>
-            <p>Selecciona un lugar en el mapa</p>
-        </div>
-    </div>
-</aside>
-
-<!-- Hamburger Menu Drawer -->
-<nav class="gmaps-drawer" id="drawer">
-    <div class="gmaps-drawer-header">
-        <button class="gmaps-close-drawer" id="close-drawer">
-            <span class="material-icons">close</span>
-        </button>
-        <h2 class="gmaps-drawer-title">Menú</h2>
-    </div>
-    <ul class="gmaps-drawer-menu">
-        <li class="gmaps-drawer-item" onclick="closeDrawer()">
-            <span class="material-icons">explore</span>
-            <span>Explorar mapa</span>
-        </li>
-        <li class="gmaps-drawer-item" onclick="openChronodex(); closeDrawer();">
-            <span class="material-icons">collections_bookmark</span>
-            <span>Tus descubrimientos</span>
-        </li>
-        <li class="gmaps-drawer-item" onclick="ProfileSystem.open(); closeDrawer();">
-            <span class="material-icons">person</span>
-            <span>Tu perfil</span>
-        </li>
-        <li class="gmaps-drawer-item" onclick="TourSystem.openModal(); closeDrawer();">
-            <span class="material-icons">route</span>
-            <span>Rutas guiadas</span>
-        </li>
-        <li class="gmaps-drawer-divider"></li>
-        <li class="gmaps-drawer-item">
-            <span class="material-icons">settings</span>
-            <span>Configuración</span>
-        </li>
-        <li class="gmaps-drawer-item">
-            <span class="material-icons">help</span>
-            <span>Ayuda y comentarios</span>
-        </li>
-    </ul>
-</nav>
-
-<!-- Map Container (Full Screen) -->
-<div id="map" class="gmaps-map-container"></div>
-
-<!-- Map Controls (Google Maps style) -->
-<div class="gmaps-controls">
-    <!-- Zoom Controls -->
-    <div class="gmaps-zoom-controls">
-        <button class="gmaps-zoom-btn" onclick="zoomIn()" aria-label="Zoom in">
-            <span class="material-icons">add</span>
-        </button>
-        <div class="gmaps-zoom-divider"></div>
-        <button class="gmaps-zoom-btn" onclick="zoomOut()" aria-label="Zoom out">
-            <span class="material-icons">remove</span>
-        </button>
-    </div>
-
-    <!-- My Location Button -->
-    <button class="gmaps-location-btn" onclick="goToMyLocation()" aria-label="Mi ubicación">
-        <span class="material-icons">my_location</span>
-    </button>
-
-    <!-- 3D Toggle -->
-    <button class="gmaps-3d-toggle" id="view-toggle" onclick="toggle3DView()" aria-label="Vista 3D">
-        <span class="gmaps-3d-label">2D</span>
-    </button>
-
-    <!-- Layers Button -->
-    <button class="gmaps-layers-btn" id="layers-btn" onclick="toggleLayersMenu()" aria-label="Capas">
-        <span class="material-icons">layers</span>
-    </button>
-</div>
-
-<!-- Layers Menu (Popup) -->
-<div class="gmaps-layers-menu hidden" id="layers-menu">
-    <div class="gmaps-layers-header">Capas del mapa</div>
-    <label class="gmaps-layer-item">
-        <input type="checkbox" checked onchange="toggleTrafficLayer(this.checked)">
-        <span>Tráfico</span>
-    </label>
-    <label class="gmaps-layer-item">
-        <input type="checkbox" onchange="toggleTransitLayer(this.checked)">
-        <span>Transporte público</span>
-    </label>
-    <label class="gmaps-layer-item">
-        <input type="checkbox" onchange="toggleBicyclingLayer(this.checked)">
-        <span>Ciclismo</span>
-    </label>
-    <div class="gmaps-layers-divider"></div>
-    <div class="gmaps-layers-subheader">Chronos</div>
-    <label class="gmaps-layer-item">
-        <input type="checkbox" checked id="chronos-markers-toggle" onchange="toggleChronosMarkers(this.checked)">
-        <span>Lugares históricos</span>
-    </label>
-    <label class="gmaps-layer-item">
-        <input type="checkbox" id="rare-only-toggle" onchange="toggleRareOnly(this.checked)">
-        <span>Solo lugares raros</span>
-    </label>
-</div>
-
-<!-- Legacy Modals (kept for compatibility) -->
-<div id="profile-creation-modal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <h2 class="modal-title">Nueva Identidad</h2>
-        <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Crea tu tarjeta de explorador para guardar tus
-            hallazgos.</p>
-        <div class="avatar-grid">
-            <div class="avatar-option" onclick="selectAvatar('🤠')">🤠</div>
-            <div class="avatar-option" onclick="selectAvatar('👩‍🚀')">👩‍🚀</div>
-            <div class="avatar-option" onclick="selectAvatar('🕵️‍♀️')">🕵️‍♀️</div>
-            <div class="avatar-option" onclick="selectAvatar('🧙‍♂️')">🧙‍♂️</div>
-        </div>
-        <input type="text" id="username-input" class="modal-input" placeholder="Nombre de Agente" maxlength="12">
-        <button class="action-btn btn-primary" onclick="saveProfile()">
-            Registrar Licencia <i class="fa-solid fa-check"></i>
-        </button>
-    </div>
-</div>
-
-<div id="chronodex-modal" class="modal-overlay hidden">
-    <div class="modal-card wide">
-        <div class="modal-header">
-            <h2 class="modal-title"><i class="fa-solid fa-book-journal-whills" style="color:#f59e0b;"></i> Chronodex
-            </h2>
-            <button class="close-btn" onclick="document.getElementById('chronodex-modal').classList.add('hidden')"><i
-                    class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Tu colección de descubrimientos históricos.
-        </div>
-        <div id="chronodex-grid" class="chronedex-grid"></div>
-    </div>
-</div>
-
-<div id="tours-modal" class="modal-overlay hidden">
-    <div class="modal-card wide">
-        <div class="modal-header">
-            <h2 class="modal-title"><i class="fa-solid fa-route" style="color:#8b5cf6;"></i> Rutas Guiadas</h2>
-            <button class="close-btn" onclick="TourSystem.closeModal()"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Explora Barcelona con nuestras rutas
-            curadas.</div>
-        <div id="tours-grid" class="tours-grid"></div>
-    </div>
-</div>
-
-<!-- Profile Overlay (AAA System) -->
-<div id="profile-overlay" class="profile-overlay hidden">
-    <!-- Header Nav -->
-    <div class="profile-header-nav">
-        <button class="icon-btn-glass" onclick="ProfileSystem.close()">
-            <span class="material-icons" style="vertical-align: middle;">close</span> Cerrar
-        </button>
-        <div style="flex:1"></div>
-        <button class="icon-btn-glass" onclick="savePlayerState(); showToast('Progreso guardado', 'check', '#10b981')">
-            <span class="material-icons" style="vertical-align: middle;">cloud_upload</span> Guardar
-        </button>
-    </div>
-
-    <!-- Hero Section -->
-    <div class="profile-hero">
-        <div id="p-avatar-container" class="p-avatar-wrapper border-bronze">
-            <span id="p-avatar">🤠</span>
-            <div class="online-indicator"></div>
-        </div>
-        <div class="p-identity">
-            <div id="p-title" class="p-title-badge">EXPLORADOR NOVATO</div>
-            <h1 id="p-username">@Agente</h1>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <span class="loading-logo">⏱️</span>
+            <h1 class="loading-title">Chronos Maps</h1>
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Cargando mapa...</p>
         </div>
     </div>
 
-    <!-- Level & Progress -->
-    <div class="level-section">
-        <div class="level-info-row">
-            <span id="p-level-display" style="color: white; font-weight: 800; font-size: 14px;">NIVEL 1</span>
-            <span id="p-xp-text" style="color: #9ca3af; font-size: 12px;">0 / 1000 XP</span>
+    <!-- GOOGLE MAPS LAYOUT -->
+
+    <!-- Header Bar (Google Maps style) -->
+    <header class="gmaps-header">
+        <!-- Hamburger Menu -->
+        <div class="u-relative">
+            <button class="gmaps-menu-btn" id="menu-btn" aria-label="Menu">
+                <span class="material-icons">menu</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <nav class="gmaps-dropdown-menu" id="drawer">
+                <ul class="gmaps-drawer-menu">
+                    <li class="gmaps-drawer-item" onclick="closeDrawer()">
+                        <span class="material-icons">explore</span>
+                        <span>Explorar mapa</span>
+                    </li>
+                    <li class="gmaps-drawer-item" onclick="openChronodex(); closeDrawer();">
+                        <span class="material-icons">collections_bookmark</span>
+                        <span>Chronodex</span>
+                    </li>
+                    <li class="gmaps-drawer-item" onclick="ProfileSystem.open(); closeDrawer();">
+                        <span class="material-icons">person</span>
+                        <span>Tu perfil</span>
+                    </li>
+                    <li class="gmaps-drawer-item" onclick="TourSystem.openModal(); closeDrawer();">
+                        <span class="material-icons">route</span>
+                        <span>Rutas guiadas</span>
+                    </li>
+                    <div class="gmaps-drawer-divider"></div>
+                    <li class="gmaps-drawer-item"
+                        onclick="if(window.OpenAIService) { window.OpenAIService.showOpenAISetup(); closeDrawer(); }">
+                        <span class="material-icons">settings</span>
+                        <span>Configuración AI</span>
+                    </li>
+                    <li class="gmaps-drawer-item">
+                        <span class="material-icons">help</span>
+                        <span>Ayuda y comentarios</span>
+                    </li>
+                    <div class="gmaps-drawer-divider"></div>
+                    <li class="gmaps-drawer-item u-text-danger" onclick="AuthSystem.logout(); closeDrawer();">
+                        <span class="material-icons">logout</span>
+                        <span>Cerrar Sesión</span>
+                    </li>
+                </ul>
+            </nav>
         </div>
-        <div class="xp-bar-bg">
-            <div id="p-xp-bar" class="xp-bar-fill" style="width: 0%"></div>
+
+        <!-- Logo & Title -->
+        <div class="gmaps-logo">
+            <span class="gmaps-logo-icon">⏱️</span>
+            <span class="gmaps-title">Chronos Maps</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="gmaps-search-container">
+            <span class="material-icons gmaps-search-icon">search</span>
+            <input type="text" id="gmaps-search-input" class="gmaps-search-input" placeholder="Buscar en Chronos Maps"
+                autocomplete="off" />
+            <button class="gmaps-voice-btn" aria-label="Búsqueda por voz">
+                <span class="material-icons">mic</span>
+            </button>
+            <div id="search-dropdown" class="search-dropdown"></div>
+            <!-- Dropdown moved inside container for positioning -->
+        </div>
+
+        <!-- Space Filler -->
+        <div class="u-flex-1"></div>
+
+        <!-- User Avatar -->
+        <div class="profile-avatar-modern" id="avatar-btn" onclick="handleProfileClick()">
+            <div class="avatar-hexagon">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Agente" class="avatar-image"
+                    id="header-avatar-img">
+            </div>
+            <div class="level-badge-modern">
+                <span class="level-number" id="header-level-badge">1</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Panel (Drawer) -->
+    <aside class="gmaps-side-panel" id="side-panel">
+        <div id="info-display" class="u-hidden"></div> <!-- Legacy hidden anchor for compatibility -->
+        <div id="initial-state" class="u-hidden"></div> <!-- Legacy hidden anchor for compatibility -->
+        <div id="panel-back-nav" class="panel-back-nav hidden">
+            <button class="back-button" onclick="goBack()">
+                <span class="material-icons">arrow_back</span>
+                <span>Volver</span>
+            </button>
+        </div>
+        <div class="gmaps-panel-content" id="panel-content">
+            <!-- Content injected dynamically -->
+            <div class="gmaps-panel-empty">
+                <span class="material-icons gmaps-empty-icon">place</span>
+                <p>Selecciona un lugar en el mapa</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Map Container (Full Screen) -->
+
+    <!-- Map Container (Full Screen) -->
+    <div id="chronos-map-canvas" class="gmaps-map-container"></div>
+
+    <!-- Map Controls (Google Maps style) -->
+    <!-- Map Controls (Google Maps style) -->
+    <div class="gmaps-controls-container">
+        <!-- Bottom Left: Layers -->
+        <div class="gmaps-control-group bottom-left">
+            <button class="gmaps-layers-btn" id="layers-btn" onclick="toggleLayersMenu()" aria-label="Capas"
+                title="Capas">
+                <span class="material-icons">layers</span>
+            </button>
+            <!-- Map Type Toggles (Mini) -->
+            <div class="gmaps-mini-toggles">
+                <button class="gmaps-mini-toggle active" onclick="setMapType('roadmap')">Mapa</button>
+                <button class="gmaps-mini-toggle" onclick="setMapType('satellite')">Satélite</button>
+            </div>
+        </div>
+
+        <!-- Bottom Right: Zoom & Location & 3D -->
+        <div class="gmaps-control-group bottom-right">
+            <!-- 3D Toggle -->
+            <button class="gmaps-fab-btn" id="view-toggle" onclick="toggle3DView()" aria-label="Vista 3D"
+                title="Vista 3D / 2D">
+                <span class="gmaps-3d-label">2D</span>
+            </button>
+
+            <!-- My Location -->
+            <button class="gmaps-fab-btn location-btn" onclick="goToMyLocation()" aria-label="Mi ubicación"
+                title="Ir a mi ubicación">
+                <span class="material-icons">my_location</span>
+            </button>
+
+            <!-- Zoom Controls (Stacked) -->
+            <div class="gmaps-zoom-stack">
+                <button class="gmaps-zoom-btn plus" onclick="zoomIn()" aria-label="Zoom in">
+                    <span class="material-icons">add</span>
+                </button>
+                <div class="zoom-divider"></div>
+                <button class="gmaps-zoom-btn minus" onclick="zoomOut()" aria-label="Zoom out">
+                    <span class="material-icons">remove</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="quick-stats-row">
-        <div class="q-stat">
-            <span id="stat-count-places" class="q-val">0</span>
-            <span class="q-label">Lugares</span>
-        </div>
-        <div class="q-stat">
-            <span id="stat-count-checkins" class="q-val">0</span>
-            <span class="q-label">Visitas</span>
-        </div>
-        <div class="q-stat">
-            <span id="stat-count-streak" class="q-val">1d</span>
-            <span class="q-label">Racha</span>
+    <!-- Layers Menu (Popup) -->
+    <div class="gmaps-layers-menu hidden" id="layers-menu">
+        <div class="gmaps-layers-header">Capas del mapa</div>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" checked onchange="toggleTrafficLayer(this.checked)">
+            <span>Tráfico</span>
+        </label>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" onchange="toggleTransitLayer(this.checked)">
+            <span>Transporte público</span>
+        </label>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" onchange="toggleBicyclingLayer(this.checked)">
+            <span>Ciclismo</span>
+        </label>
+        <div class="gmaps-layers-divider"></div>
+        <div class="gmaps-layers-subheader">Chronos</div>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" checked id="chronos-markers-toggle" onchange="toggleChronosMarkers(this.checked)">
+            <span>Lugares históricos</span>
+        </label>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" id="rare-only-toggle" onchange="toggleRareOnly(this.checked)">
+            <span>Solo lugares raros</span>
+        </label>
+        <label class="gmaps-layer-item">
+            <input type="checkbox" id="rifts-toggle" checked
+                onchange="if(window.RiftSystem) window.RiftSystem.toggleVisibility(this.checked)">
+            <span>Grietas Temporales</span>
+        </label>
+    </div>
+
+    <!-- Legacy Modals (kept for compatibility) -->
+    <div id="profile-creation-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2 class="modal-title">Nueva Identidad</h2>
+            <p class="u-modal-subtitle">Crea tu tarjeta de explorador para guardar tus
+                hallazgos.</p>
+            <div class="avatar-grid">
+                <div class="avatar-option" onclick="selectAvatar('🤠')">🤠</div>
+                <div class="avatar-option" onclick="selectAvatar('👩‍🚀')">👩‍🚀</div>
+                <div class="avatar-option" onclick="selectAvatar('🕵️‍♀️')">🕵️‍♀️</div>
+                <div class="avatar-option" onclick="selectAvatar('🧙‍♂️')">🧙‍♂️</div>
+            </div>
+            <input type="text" id="username-input" class="modal-input" placeholder="Nombre de Agente" maxlength="12">
+            <button class="action-btn btn-primary" onclick="saveProfile()">
+                Registrar Licencia <i class="fa-solid fa-check"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Bio Box -->
-    <div class="p-bio-box" style="margin-top: 10px;">
-        <p id="p-bio">Explorando el mundo un lugar a la vez 🌍</p>
-        <small id="p-joined">Miembro desde: --/--/----</small>
-    </div>
-
-    <!-- Tabs -->
-    <div class="profile-tabs">
-        <button class="profile-tab-btn active" data-tab="discoveries">Descubrimientos</button>
-        <button class="profile-tab-btn" data-tab="badges">Insignias</button>
-    </div>
-
-    <!-- Content Area -->
-    <div class="profile-content-scroll">
-        <!-- Discoveries Tab -->
-        <div id="tab-discoveries" class="profile-tab-content">
-            <div class="empty-msg">Cargando descubrimientos...</div>
-        </div>
-
-        <!-- Badges Tab -->
-        <div id="tab-badges" class="profile-tab-content hidden">
-            <div class="empty-msg">Cargando insignias...</div>
+    <div id="chronodex-modal-v2" class="chronodex-modal-overlay hidden">
+        <div class="chronodex-modal-card wide">
+            <div class="modal-header">
+                <h2 class="modal-title u-margin-0"><i class="fa-solid fa-book-journal-whills u-icon-chronodex"></i>
+                    Chronodex
+                </h2>
+                <button class="close-btn"
+                    onclick="document.getElementById('chronodex-modal-v2').classList.add('hidden')"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="margin-bottom:16px; font-size:13px; color:#94a3b8;">Tu colección de descubrimientos históricos.
+            </div>
+            <div id="chronodex-grid" class="chronedex-grid"></div>
         </div>
     </div>
-</div>
 
-<!-- Scripts -->
-<script src="curated_content.js"></script>
-<script src="audio_fx.js"></script>
-<script src="chronodex.js"></script>
-<script src="profile.js"></script>
-<script src="tours.js"></script>
-<script src="google-services.js"></script>
-<script src="app.js"></script>
+    <div id="tours-modal" class="modal-overlay hidden">
+        <div class="modal-card wide">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fa-solid fa-route u-icon-tours"></i> Rutas Guiadas</h2>
+                <button class="close-btn" onclick="TourSystem.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Explora Barcelona con nuestras rutas
+                curadas.</div>
+            <div id="tours-grid" class="tours-grid"></div>
+        </div>
+    </div>
 
-<!-- Google Maps API -->
-<script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt3-_T5sn-4xua9SdE7D7ENrXly3R4qAo&callback=initApp&libraries=places">
+    <div id="profile-overlay" class="profile-overlay hidden">
+        <!-- Header Nav -->
+        <div class="profile-header-nav">
+            <button class="m-btn-icon" onclick="ProfileSystem.close()">
+                <span class="material-icons">close</span> <span>Cerrar</span>
+            </button>
+            <div class="u-flex-1"></div>
+            <button class="m-btn-icon" onclick="ProfileSystem.openSettings()">
+                <span class="material-icons">settings</span>
+            </button>
+        </div>
+
+        <!-- Section 1: Hero Header -->
+        <div class="profile-hero-minimal">
+            <div class="p-avatar-main-container">
+                <div class="p-avatar-main" id="p-avatar">🤠</div>
+                <div class="status-badge"></div>
+            </div>
+            <div class="p-identity-minimal">
+                <span class="p-rank-text" id="p-title">Explorador Novato</span>
+                <h1 id="p-username">@Agente</h1>
+                <button class="m-btn-edit" onclick="ProfileSystem.toggleEditMode()">✏️ Editar Perfil</button>
+            </div>
+        </div>
+
+        <!-- Section 2: Stats Grid -->
+        <section class="stats-grid-minimal">
+            <div class="stat-card-m">
+                <span class="stat-icon">📍</span>
+                <span class="stat-value" id="stat-count-places">0</span>
+                <span class="stat-label">Lugares</span>
+            </div>
+            <div class="stat-card-m">
+                <span class="stat-icon">🏆</span>
+                <span class="stat-value" id="stat-count-badges">0</span>
+                <span class="stat-label">Logros</span>
+            </div>
+            <div class="stat-card-m">
+                <span class="stat-icon">🔥</span>
+                <span class="stat-value" id="stat-count-streak">1d</span>
+                <span class="stat-label">Racha</span>
+            </div>
+            <div class="stat-card-m">
+                <span class="stat-icon">⭐</span>
+                <span class="stat-value" id="stat-count-xp-total">0</span>
+                <span class="stat-label">XP Total</span>
+            </div>
+        </section>
+
+        <!-- Section 3: Progress -->
+        <section class="level-progress-minimal">
+            <div class="level-header-m">
+                <span id="p-level-display">NIVEL 1</span>
+                <span id="p-xp-text">0 / 1000 XP</span>
+            </div>
+            <div class="progress-bar-m-bg">
+                <div id="p-xp-bar" class="progress-bar-m-fill" style="--progress-pct: 0%;"></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Achievements -->
+        <section class="achievements-minimal">
+            <h3 class="section-title-m">🎖️ Logros Destacados</h3>
+            <div id="badges-scroll-container" class="badges-scroll">
+                <!-- Badges loaded dynamically -->
+            </div>
+        </section>
+
+        <!-- Section 5: Activity -->
+        <section class="activity-minimal">
+            <h3 class="section-title-m">📊 Actividad Reciente</h3>
+            <div id="activity-list" class="activity-list-m">
+                <div class="activity-item-m">
+                    <span class="act-icon-m">🏛️</span>
+                    <div class="act-content-m">
+                        <p>Te uniste a Chronos Maps</p>
+                        <small>¡Bienvenido explorador!</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Settings (Accordion) -->
+        <section class="settings-minimal">
+            <h3 class="section-title-m">⚙️ Ajustes y Configuración</h3>
+
+            <div class="setting-group-m">
+                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
+                    <span>Información Personal</span>
+                    <span class="material-icons">expand_more</span>
+                </button>
+                <div class="setting-content-m">
+                    <div class="setting-item-m">
+                        <label>Email</label>
+                        <span id="p-email-display" class="u-text-muted">usuario@chronos.app</span>
+                    </div>
+                    <div class="setting-item-m">
+                        <label>Miembro desde</label>
+                        <span id="p-joined-display" class="u-text-muted">--/--/----</span>
+                    </div>
+                    <div class="setting-item-m">
+                        <label>Bio</label>
+                        <p id="p-bio-display" class="u-font-12 u-text-muted">...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-group-m">
+                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
+                    <span>Preferencias</span>
+                    <span class="material-icons">expand_more</span>
+                </button>
+                <div class="setting-content-m">
+                    <div class="setting-item-m">
+                        <label>Modo Oscuro</label>
+                        <label class="m-switch">
+                            <input type="checkbox" onchange="ProfileSystem.toggleDarkMode(this.checked)">
+                            <span class="m-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item-m">
+                        <label>Notificaciones</label>
+                        <label class="m-switch">
+                            <input type="checkbox" checked>
+                            <span class="m-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-group-m">
+                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
+                    <span>Privacidad y Seguridad</span>
+                    <span class="material-icons">expand_more</span>
+                </button>
+                <div class="setting-content-m">
+                    <div class="setting-item-m">
+                        <label>Perfil Público</label>
+                        <label class="m-switch">
+                            <input type="checkbox" checked>
+                            <span class="m-slider"></span>
+                        </label>
+                    </div>
+                    <button class="m-btn-edit u-w-full u-margin-top-10">Cambiar Contraseña</button>
+                </div>
+            </div>
+
+            <div class="setting-group-m">
+                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
+                    <span>Colección y Datos</span>
+                    <span class="material-icons">expand_more</span>
+                </button>
+                <div class="setting-content-m">
+                    <button class="m-btn-edit u-w-full" onclick="ProfileSystem.exportData()">💾 Exportar mis
+                        datos</button>
+                    <button class="m-btn-edit u-w-full u-text-danger u-margin-top-10">🗑️ Eliminar cuenta</button>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 400px;">
+            <h2 class="modal-title">🔐 Autenticación</h2>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+                <button id="login-tab" class="auth-tab active" onclick="AuthSystem.switchAuthMode('login')">
+                    Iniciar Sesión
+                </button>
+                <button id="register-tab" class="auth-tab" onclick="AuthSystem.switchAuthMode('register')">
+                    Registrarse
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form">
+                <input type="text" id="login-username" class="modal-input" placeholder="Nombre de usuario"
+                    autocomplete="username">
+                <input type="password" id="login-password" class="modal-input" placeholder="Contraseña"
+                    autocomplete="current-password">
+                <button class="action-btn btn-primary" onclick="AuthSystem.login()"
+                    style="width: 100%; margin-top: 12px;">
+                    Entrar <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form" class="hidden">
+                <input type="text" id="register-username" class="modal-input" placeholder="Nombre de usuario"
+                    autocomplete="username">
+                <input type="password" id="register-password" class="modal-input" placeholder="Contraseña"
+                    autocomplete="new-password">
+                <input type="password" id="register-confirm" class="modal-input" placeholder="Confirmar contraseña"
+                    autocomplete="new-password">
+                <button class="action-btn btn-primary" onclick="AuthSystem.register()"
+                    style="width: 100%; margin-top: 12px;">
+                    Crear Cuenta <i class="fa-solid fa-user-plus"></i>
+                </button>
+            </div>
+
+            <button class="action-btn" onclick="AuthSystem.hideAuthModal()"
+                style="width: 100%; margin-top: 12px; background: #6b7280;">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
+    <!-- Security & Sanitization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
+        integrity="sha512-H+SGo399L6U6N6VunmB99zO8mX6p07u8mU6yvU1H8jW1l0X0mU6yvU1H8jW1l0X0"
+        crossorigin="anonymous"></script>
+    <script>
+        // Global Safety Wrapper
+        window.safeHTML = function (content) {
+            if (typeof DOMPurify === 'undefined') return content;
+            return DOMPurify.sanitize(content);
+        };
     </script>
 
-<script>
-    function handleAuthFailure() {
-        alert('Error: No se pudo cargar Google Maps. Verifica tu clave API.');
-    }
-</script>
+    <div id="gdpr-banner" class="gdpr-banner">
+        <div class="gdpr-content">
+            <div class="gdpr-title"><span class="material-icons u-link-privacy">security</span> Privacidad y
+                Cookies</div>
+            <div class="gdpr-text">Usamos tu geolocalización para mostrarte lugares históricos cercanos y cookies para
+                guardar tu progreso en el Chronodex. Consulta nuestra <a href="privacy.html"
+                    class="u-link-privacy">Política de Privacidad</a>.</div>
+        </div>
+        <div class="gdpr-actions">
+            <button class="gdpr-btn gdpr-btn-secondary"
+                onclick="document.getElementById('gdpr-banner').classList.remove('active')">Rechazar</button>
+            <button class="gdpr-btn gdpr-btn-primary" onclick="acceptGDPR()">Aceptar y Explorar</button>
+        </div>
+    </div>
+
+    <!-- Security Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
+        integrity="sha512-H+SGo399L6U6N6VunmB99zO8mX6p07u8mU6yvU1H8jW1l0X0mU6yvU1H8jW1l0X0"
+        crossorigin="anonymous"></script>
+    <script>
+        // Global Safety Wrapper (Paso 5)
+        window.safeHTML = function (content) {
+            if (typeof DOMPurify === 'undefined') return content;
+            return DOMPurify.sanitize(content);
+        };
+    </script>
+
+    <script>
+        window.addEventListener('load', () => {
+            if (!localStorage.getItem('chronos_gdpr')) {
+                setTimeout(() => document.getElementById('gdpr-banner').classList.add('active'), 2000);
+            }
+        });
+        function acceptGDPR() {
+            localStorage.setItem('chronos_gdpr', 'true');
+            document.getElementById('gdpr-banner').classList.remove('active');
+            if (window.goToMyLocation) window.goToMyLocation();
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="auth.js"></script>
+    <!-- Removed legacy chronodex-fix.js -->
+    <script src="curated_content.js"></script>
+    <script src="audio_fx.js"></script>
+    <script src="chronodex.js?v=2"></script>
+    <script src="rifts.js"></script>
+    <script src="poster_generator.js"></script>
+    <script src="voice_guide.js"></script>
+    <script src="profile.js"></script>
+    <script src="tours.js"></script>
+    <script src="nearby-scanner.js"></script>
+    <script src="google-services.js"></script>
+    <script src="openai-services.js"></script>
+    <script src="duels.js"></script>
+    <script src="poi_card.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Marker Clusterer -->
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+
+    <!-- Google Maps API Loader (Secure Dynamic) -->
+    <script>
+        (function () {
+            fetch('/api/config')
+                .then(r => r.json())
+                .then(config => {
+                    const script = document.createElement('script');
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsKey}&callback=initApp&libraries=places`;
+                    script.async = true;
+                    script.defer = true;
+                    document.head.appendChild(script);
+                })
+                .catch(err => {
+                    console.error("Failed to load config:", err);
+                    if (typeof handleAuthFailure === 'function') handleAuthFailure();
+                });
+        })();
+    </script>
+
+    <script>
+        function handleAuthFailure() {
+            alert('Error: No se pudo cargar Google Maps. Verifica tu clave API.');
+        }
+    </script>
 </body>
 
 </html>
