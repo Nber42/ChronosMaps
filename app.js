@@ -371,11 +371,17 @@ window.initApp = async function () {
     }, 1500);
 }
 
-// Auto-open drawer on startup
+// Auto-open drawer on startup (Debug)
 setTimeout(() => {
+    console.log("🚀 Attempting to auto-open drawer...");
     const drawer = document.getElementById('drawer');
-    if (drawer) drawer.classList.add('open');
-}, 1000);
+    if (drawer) {
+        drawer.classList.add('open');
+        console.log("✅ Drawer opened class added");
+    } else {
+        console.error("❌ Drawer element not found");
+    }
+}, 2500);
 };
 
 function findNearbyHistoricalPlaces(location) {
