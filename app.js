@@ -76,7 +76,33 @@ window.goToMyLocation = function () {
     }
 };
 
+// Anti-Spoofing State
+let lastValidPosition = null;
+let lastPositionTime = 0;
+const MAX_SPEED_KMH = 800; // Plane speed, anything faster is suspicious teleport
+
 function updateUserMarker(pos, accuracy) {
+    const now = Date.now();
+
+    // Check Speed if we have history
+    if (lastValidPosition && lastPositionTime > 0) {
+        const distKm = getDistanceFromLatLonInKm(lastValidPosition.lat, lastValidPosition.lng, pos.lat, pos.lng);
+        const timeHours = (now - lastPositionTime) / 1000 / 3600;
+
+        if (timeHours > 0) {
+            const speed = distKm / timeHours;
+            if (speed > MAX_SPEED_KMH) {
+                console.warn(`⚠️ SPEED ALERT: ${speed.toFixed(0)} km/h. Teleport detected?`);
+                if (window.showToast) window.showToast("⚠️ Movimiento sospechoso detectado. Acción bloqueada.", "triangle-exclamation", "#ef4444");
+                return; // BLOCK UPDATE
+            }
+        }
+    }
+
+    // Update Valid State
+    lastValidPosition = pos;
+    lastPositionTime = now;
+
     if (userMarker) {
         userMarker.setPosition(pos);
     } else {
@@ -111,6 +137,25 @@ function updateUserMarker(pos, accuracy) {
             radius: accuracy
         });
     }
+}
+
+// Haversine Helper
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    var R = 6371; // Radius of the earth in km
+    var dLat = deg2rad(lat2 - lat1);  // deg2rad below
+    var dLon = deg2rad(lon2 - lon1);
+    var a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        ;
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c; // Distance in km
+    return d;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180)
 }
 
 // 3D View Toggle
@@ -270,6 +315,18 @@ window.initApp = async function () {
     // Show loading screen immediately
     const loadingScreen = document.getElementById('loading-screen');
 
+    // Initialize Auth System
+    if (typeof AuthSystem !== 'undefined') AuthSystem.init();
+
+    // Check if user is logged in, if not show auth modal
+    if (!AuthSystem.isLoggedIn()) {
+        setTimeout(() => {
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+            AuthSystem.showAuthModal();
+        }, 1000);
+        return; // Don't load map until authenticated
+    }
+
     loadPlayerState();
     if (typeof ProfileSystem !== 'undefined') ProfileSystem.init();
     if (typeof TourSystem !== 'undefined') TourSystem.init();
@@ -310,16 +367,20 @@ window.initApp = async function () {
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
     } else {
-        setTimeout(() => {
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            map.setCenter(DEFAULT_LOCATION);
-            map.setZoom(13);
-        }, 1500);
-    }
+        map.setZoom(13);
+    }, 1500);
+}
+
+// Auto-open drawer on startup
+setTimeout(() => {
+    const drawer = document.getElementById('drawer');
+    if (drawer) drawer.classList.add('open');
+}, 1000);
 };
 
 function findNearbyHistoricalPlaces(location) {
-    if (typeof placesService === 'undefined' || !placesService) return;
+    if (!window.placesService) window.initGoogleServices();
+    if (!window.placesService) return;
 
     const request = {
         location: location,
@@ -329,10 +390,51 @@ function findNearbyHistoricalPlaces(location) {
 
     placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
-            // results.forEach(place => addHistoricalMarker(place)); // Existing logic might handle this
             console.log(`Found ${results.length} historical places near user`);
+            results.forEach(place => addHistoricalMarker(place));
         }
     });
+}
+
+function addHistoricalMarker(place) {
+    if (!map) return;
+
+    const marker = new google.maps.Marker({
+        position: place.geometry.location,
+        title: place.name,
+        icon: {
+            url: "https://maps.google.com/mapfiles/kml/pal3/icon40.png", // Temple icon
+            scaledSize: new google.maps.Size(32, 32)
+        }
+        // No map property here because we add to clusterer
+    });
+
+    // Info Window
+    const infowindow = new google.maps.InfoWindow({
+        content: `
+            <div class="infowindow-container">
+                <strong>${place.name}</strong><br>
+                <small>📍 Haz clic para descubrir su historia</small>
+            </div>
+        `
+    });
+
+    marker.addListener("mouseover", () => infowindow.open(map, marker));
+    marker.addListener("mouseout", () => infowindow.close());
+
+    // Click -> Generate AI Content
+    marker.addListener("click", () => {
+        handleMapClick(place.geometry.location.lat(), place.geometry.location.lng(), place.place_id);
+    });
+
+    // Add to Clusterer
+    if (window.clusterer) {
+        window.clusterer.addMarker(marker);
+    } else {
+        marker.setMap(map); // Fallback
+    }
+
+    if (window.mapMarkers) window.mapMarkers.push(marker);
 }
 
 function initMap() {
@@ -347,19 +449,141 @@ function initMap() {
     const mapOptions = {
         center: DEFAULT_LOCATION,
         zoom: 13,
-        mapTypeId: 'roadmap', // Real map mode
+        mapTypeId: 'satellite', // Satellite mode by default
         disableDefaultUI: true, // Clean look
         zoomControl: false,     // Custom controls later if needed, or rely on gestures
-        tilt: 0                // 2D startup
+        tilt: 45                // 3D startup
     };
 
-    map = new google.maps.Map(document.getElementById('map'), mapOptions);
-    window.map = map; // Expose for Tours
+    window.chronosMap = new google.maps.Map(document.getElementById('chronos-map-canvas'), mapOptions);
+    map = window.chronosMap; // Expose for Tours
 
-    // Click Listener
-    map.addListener('click', (e) => {
-        handleMapClick(e.latLng.lat(), e.latLng.lng());
-        closeDropdown();
+    // Initialize Marker Clusterer
+    window.mapMarkers = [];
+    if (markerClusterer) {
+        window.clusterer = new markerClusterer.MarkerClusterer({ map, markers: window.mapMarkers });
+    }
+
+    // Initialize Rift System
+    if (window.RiftSystem) {
+        window.RiftSystem.init();
+        // Check for rifts when map stops moving
+        map.addListener('idle', () => {
+            const center = map.getCenter();
+            window.RiftSystem.checkForSpawn(center.lat(), center.lng());
+        });
+    }
+
+    // Click Listener (OpenAI Integration)
+    map.addListener('click', async (event) => {
+        // Stop audio if playing
+        if (typeof stopAudio === 'function') stopAudio();
+        if (typeof closeDropdown === 'function') closeDropdown();
+
+        const clickedLocation = {
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng()
+        };
+
+        // Show loading in side panel
+        const sidePanel = document.getElementById('side-panel');
+        const panelContent = document.getElementById('panel-content');
+
+        // Ensure panel is visible
+        if (sidePanel) {
+            // Ensure any 'hidden' class is removed
+            sidePanel.classList.remove('hidden');
+            // Add 'open' class if that's what shows it (CSS dependent, but usually removing hidden is enough for these sidebars)
+            sidePanel.classList.add('open');
+        }
+
+        if (panelContent) {
+            panelContent.innerHTML = `
+                <div class="panel-loading-container">
+                    <div class="loading-spinner u-margin-auto"></div>
+                    <p>Analizando ubicación...</p>
+                    <small class="u-text-muted">Obteniendo dirección y curiosidades históricas</small>
+                </div>
+            `;
+        }
+
+        // Place a marker temporarily
+        if (typeof placeMarker === 'function') placeMarker(clickedLocation.lat, clickedLocation.lng);
+
+        try {
+            try {
+                // 1. IMPROVED DETECTION: Search for Important Places
+                if (!window.OpenAIService) throw new Error("OpenAI Service not loaded");
+
+                let importantPlace = null;
+
+                // A. DIRECT POI CLICK (Highest Priority)
+                if (event.placeId) {
+                    console.log("🎯 POI Clicked directly:", event.placeId);
+                    // Prevent standard info window if possible/needed
+                    if (event.stop) event.stop();
+
+                    importantPlace = await window.OpenAIService.getPlaceDetails(event.placeId, map);
+                }
+
+                // B. RADIUS SEARCH (If clicked on map but not on icon)
+                if (!importantPlace) {
+                    console.log("🔍 Searching nearby (50m)...");
+                    importantPlace = await window.OpenAIService.findImportantPlaceNearby(clickedLocation, map);
+                }
+
+                if (importantPlace) {
+                    console.log('✅ Lugar importante detectado:', importantPlace.name);
+
+                    // Generate Place-Specific Curiosities
+                    const aiData = await window.OpenAIService.generatePlaceCuriositiesWithAI(importantPlace);
+
+                    // Show Place Panel
+                    window.OpenAIService.showPlacePanel(importantPlace, aiData);
+
+                } else {
+                    // NO POI -> Fallack to Address
+                    console.log('ℹ️ No hay lugares importantes, usando dirección');
+
+                    if (!window.getFullAddress) { // Wait for services
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                    const addressData = await window.getFullAddress(clickedLocation);
+
+                    // Generate Generic Curiosities
+                    const aiData = await window.OpenAIService.generateCuriositiesWithAI(addressData);
+
+                    // Show Generic Panel
+                    window.OpenAIService.showPlacePanel(addressData, aiData);
+                }
+
+            } catch (error) {
+                console.error("Error in smart detection:", error);
+                // Fallback to error UI
+                if (panelContent) {
+                    panelContent.innerHTML = `
+                    <div style="padding:20px; text-align:center; color: #d32f2f;">
+                        <span class="material-icons" style="font-size:40px;">error_outline</span>
+                        <p>Error al analizar la ubicación</p>
+                        <small>${error.message}</small>
+                    </div>`;
+                }
+            }
+
+        } catch (error) {
+            console.error("Error in map click:", error);
+            if (panelContent) {
+                panelContent.innerHTML = `
+                    <div style="padding:20px; text-align:center; color: #d32f2f;">
+                        <span class="material-icons" style="font-size:40px;">error_outline</span>
+                        <p>Error al analizar la ubicación</p>
+                        <small>${error.message}</small>
+                        <br><br>
+                        <button onclick="document.getElementById('side-panel').classList.remove('open')" class="btn-secondary">Cerrar</button>
+                    </div>
+                 `;
+            }
+        }
     });
 
     // Search Logic (Safely initialized)
@@ -419,10 +643,10 @@ function initMap() {
             });
 
             marker.addListener("click", () => {
-                infowindow.setContent(`<div style="padding:10px; font-family:sans-serif;">
-                    <b style="color:#f59e0b; font-size:12px;">LEGENDRARIO</b><br>
-                    <div style="font-weight:700; font-size:15px; margin:5px 0;">${poi.title}</div>
-                    <div style="color:#64748b; font-size:13px;">Haz clic para ver la historia completa</div>
+                infowindow.setContent(`<div class="infowindow-curated">
+                    <b class="infowindow-tag-legendary">LEGENDRARIO</b><br>
+                    <div class="infowindow-title">${poi.title}</div>
+                    <div class="infowindow-subtitle">Haz clic para ver la historia completa</div>
                 </div>`);
                 infowindow.open(map, marker);
                 handleMapClick(poi.coords[0], poi.coords[1]);
@@ -491,8 +715,28 @@ function placeMarker(lat, lng) {
 // Update search logic to use map.panTo
 // (Will fix in next block or just assume map global is updated)
 
-function loadPlayerState() {
-    const saved = localStorage.getItem('chronos_player_v3'); // New key for v3
+async function loadPlayerState() {
+    // Try to load from server if authenticated
+    if (AuthSystem && AuthSystem.isLoggedIn()) {
+        try {
+            const response = await fetch('/api/load', {
+                headers: { 'X-User-ID': AuthSystem.getUserId() }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data && Object.keys(data).length > 0) {
+                    playerState = data;
+                    console.log('✅ Player state loaded from server');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load from server, using local:', e);
+        }
+    }
+
+    // Fallback to localStorage
+    const saved = localStorage.getItem('chronos_player_v3');
     if (saved) {
         playerState = JSON.parse(saved);
         // Migrations
@@ -501,8 +745,27 @@ function loadPlayerState() {
     }
 }
 
-function savePlayerState() {
+async function savePlayerState() {
+    // Save to localStorage (backup)
     localStorage.setItem('chronos_player_v3', JSON.stringify(playerState));
+
+    // Save to server if authenticated
+    if (AuthSystem && AuthSystem.isLoggedIn()) {
+        try {
+            await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-ID': AuthSystem.getUserId()
+                },
+                body: JSON.stringify(playerState)
+            });
+            console.log('💾 State saved to server');
+        } catch (e) {
+            console.warn('Failed to save to server:', e);
+        }
+    }
+
     renderHUD();
 }
 
@@ -569,7 +832,7 @@ window.openChronedex = function () {
     const grid = document.getElementById('chronedex-grid');
     grid.innerHTML = '';
     if (playerState.chronedex.length === 0) {
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6b7280;">Aún no hay descubrimientos.</div>';
+        grid.innerHTML = '<div class="chronedex-empty-state">Aún no hay descubrimientos.</div>';
     } else {
         [...playerState.chronedex].reverse().forEach(item => {
             const el = document.createElement('div');
@@ -607,17 +870,17 @@ function renderHUD() {
 
     hud.innerHTML = `
         <div class="hud-item">
-            <i class="fa-solid fa-trophy hud-icon" style="color:#f59e0b;"></i>
+            <i class="fa-solid fa-trophy hud-icon u-icon-chronodex"></i>
             <span class="hud-val">${playerState.level}</span>
         </div>
         <div class="hud-item" onclick="TourSystem.openModal()" style="cursor:pointer" title="Rutas">
-             <div class="chronedex-btn" style="background:#8b5cf6"><i class="fa-solid fa-route"></i></div>
+             <div class="chronedex-btn tour-btn-bg"><i class="fa-solid fa-route"></i></div>
         </div>
         <div class="hud-item" onclick="openChronedex()" style="cursor:pointer" title="Chronedex">
             <div class="chronedex-btn"><i class="fa-solid fa-book-journal-whills"></i></div>
         </div>
         <div class="hud-item" onclick="toggleSound(this)" style="cursor:pointer" title="Sonido">
-            <i class="fa-solid fa-volume-high" id="sound-icon" style="color:#10b981;"></i>
+            <i class="fa-solid fa-volume-high" id="sound-icon" class="u-text-success"></i>
         </div>
     `;
 
@@ -630,10 +893,12 @@ window.toggleSound = function (el) {
         const icon = el.querySelector('i');
         if (enabled) {
             icon.className = 'fa-solid fa-volume-high';
-            icon.style.color = '#10b981';
+            icon.classList.add('u-text-success');
+            icon.classList.remove('u-text-muted');
         } else {
             icon.className = 'fa-solid fa-volume-xmark';
-            icon.style.color = '#6b7280';
+            icon.classList.add('u-text-muted');
+            icon.classList.remove('u-text-success');
         }
     }
 };
@@ -668,7 +933,7 @@ async function handleMapClick(lat, lng) {
     // Background Panel Loading (Hidden or secondary)
     const pc = document.getElementById('panel-content');
     if (pc) {
-        pc.innerHTML = '<div id="chronos-loading-state" style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; color:#666;">Buscando en la línea del tiempo...</p></div>';
+        pc.innerHTML = '<div id="chronos-loading-state" class="panel-loading-container"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p class="u-margin-top-10 u-text-muted">Buscando en la línea del tiempo...</p></div>';
     }
 
     const location = new google.maps.LatLng(lat, lng);
@@ -890,7 +1155,7 @@ async function handleMapClickFallback(lat, lng) {
     } catch (err) {
         console.error("CRITICAL FALLBACK ERROR:", err);
         const pc = document.getElementById('panel-content');
-        if (pc) pc.innerHTML = '<div style="padding:20px; color:red;">Error al cargar información. Por favor, intenta de nuevo.</div>';
+        if (pc) pc.innerHTML = '<div class="panel-error-container">Error al cargar información. Por favor, intenta de nuevo.</div>';
     }
 }
 
@@ -924,7 +1189,7 @@ window.toggleNarrator = function (text) {
         speechSynth.speak(currentUtterance);
         const btn = document.getElementById('narrator-btn');
         if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Reproduciendo...";
-        if (btn) btn.style.borderColor = "#2563eb";
+        if (btn) btn.classList.add('narrator-active');
         currentUtterance.onend = () => {
             stopAudio();
             // Achievement
@@ -950,7 +1215,7 @@ window.toggleHistory = function (btn) {
     }
 };
 
-function stopAudio() { if (speechSynth.speaking) speechSynth.cancel(); const btn = document.getElementById('narrator-btn'); if (btn) btn.style.borderColor = ""; if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Escuchar"; }
+function stopAudio() { if (speechSynth.speaking) speechSynth.cancel(); const btn = document.getElementById('narrator-btn'); if (btn) btn.classList.remove('narrator-active'); if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Escuchar"; }
 
 
 // --- END OF UI HELPERS ---
@@ -1115,7 +1380,7 @@ function triggerConfetti(isLegendary) {
 }
 function showToast(msg, icon, color) {
     const t = document.createElement('div');
-    t.style = "position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:#111827; color:white; padding:12px 24px; border-radius:30px; font-weight:600; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:2000; display:flex; gap:8px; align-items:center; animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);";
+    t.className = "toast-message-dynamic";
     t.innerHTML = `<i class="fa-solid fa-${icon}" style="color:${color}"></i> ${msg}`;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 4000);
@@ -1195,8 +1460,8 @@ async function fetchWikipedia(title, lat, lng) {
 function determineBestName(g) { const a = g.address; return a.amenity || a.building || a.tourism || a.historic || a.road || g.name || "Ubicación"; }
 function formatType(t) { return t.replace(/_/g, ' '); }
 function truncateText(t, l) { return t.length <= l ? t : t.substring(0, l) + '...'; }
-function showLoading() { initialState.style.display = 'none'; infoDisplay.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>'; }
-function displayError(m) { infoDisplay.innerHTML = `<div style="padding:20px;text-align:center;color:red;">${m}</div>`; }
+function showLoading() { initialState.style.display = 'none'; infoDisplay.innerHTML = '<div class="panel-loading-container"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>'; }
+function displayError(m) { infoDisplay.innerHTML = `<div class="panel-error-container">${m}</div>`; }
 
 /**
  * Chronos AI - Curiosity Generator
