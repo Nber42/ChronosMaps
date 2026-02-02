@@ -242,6 +242,315 @@ button {
     margin-bottom: 16px;
 }
 
+/* --- SIDE PANEL DETAILS --- */
+.gmaps-place-panel {
+    position: relative;
+    padding-bottom: 24px;
+}
+
+.gmaps-close-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+    transition: background var(--trans-fast);
+}
+
+.gmaps-close-panel:hover {
+    background: white;
+}
+
+.gmaps-photo-gallery {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    background: #f1f3f4;
+}
+
+.gmaps-place-photo {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+}
+
+.gmaps-place-photo.secondary {
+    border-left: 2px solid white;
+}
+
+.gmaps-place-info {
+    padding: 16px;
+    border-bottom: 1px solid var(--gmaps-border);
+}
+
+.gmaps-rarity-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.rarity-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.rarity-badge.common {
+    background: #9ca3af;
+    color: white;
+}
+
+.rarity-badge.rare {
+    background: var(--gmaps-blue);
+    color: white;
+}
+
+.rarity-badge.legendary {
+    background: var(--gmaps-yellow);
+    color: #000;
+    box-shadow: 0 0 10px rgba(251, 188, 4, 0.4);
+}
+
+.verified-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gmaps-green);
+}
+
+.verified-badge .material-icons {
+    font-size: 14px;
+}
+
+.gmaps-place-name {
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 4px;
+    color: var(--gmaps-text-primary);
+}
+
+.gmaps-place-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--gmaps-text-secondary);
+    margin-bottom: 8px;
+}
+
+.gmaps-place-rating .material-icons {
+    font-size: 18px;
+    color: var(--gmaps-yellow);
+}
+
+.gmaps-rating-count {
+    color: var(--gmaps-text-secondary);
+}
+
+.gmaps-place-type {
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--gmaps-divider);
+}
+
+.gmaps-place-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--gmaps-text-secondary);
+    line-height: 1.4;
+}
+
+.gmaps-place-address .material-icons {
+    font-size: 18px;
+    color: var(--gmaps-blue);
+}
+
+.gmaps-place-actions {
+    display: flex;
+    padding: 16px;
+    gap: 12px;
+    border-bottom: 1px solid var(--gmaps-border);
+    overflow-x: auto;
+}
+
+.gmaps-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background var(--trans-fast);
+}
+
+.gmaps-action-btn:hover {
+    background: rgba(66, 133, 244, 0.04);
+}
+
+.gmaps-action-btn .material-icons {
+    color: var(--gmaps-blue);
+    font-size: 24px;
+}
+
+.gmaps-action-btn span {
+    font-size: 11px;
+    color: var(--gmaps-blue);
+    font-weight: 500;
+}
+
+.gmaps-action-btn.primary {
+    background: var(--gmaps-blue);
+}
+
+.gmaps-action-btn.primary .material-icons,
+.gmaps-action-btn.primary span {
+    color: white;
+}
+
+.gmaps-action-btn.primary:hover {
+    background: #3367D6;
+}
+
+.gmaps-place-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--gmaps-border);
+}
+
+.gmaps-place-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--gmaps-text-primary);
+}
+
+.gmaps-place-section h3 .material-icons {
+    font-size: 18px;
+    color: var(--gmaps-text-secondary);
+}
+
+.chronos-history {
+    background: linear-gradient(to bottom, #ffffff, #f0f7ff);
+    border-left: 4px solid var(--gmaps-blue);
+    padding: 0 !important;
+    /* Managed by sub-containers */
+}
+
+.chronos-ai-insight {
+    background: rgba(66, 133, 244, 0.05);
+    padding: 16px;
+    border-bottom: 1px solid rgba(66, 133, 244, 0.1);
+}
+
+.chronos-ai-insight.solo {
+    border-bottom: none;
+}
+
+.ai-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gmaps-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.ai-label .material-icons {
+    font-size: 14px;
+}
+
+.ai-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gmaps-text-primary);
+    font-style: italic;
+}
+
+.historical-facts {
+    padding: 16px;
+}
+
+.facts-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gmaps-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.facts-label .material-icons {
+    font-size: 14px;
+}
+
+.facts-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gmaps-text-secondary);
+}
+
+.history-content {
+    /* Kept for potential direct usage but usually hidden by new divs */
+    padding: 16px;
+}
+
+.gmaps-narrator-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: var(--gmaps-white);
+    border: 1px solid var(--gmaps-divider);
+    border-radius: 20px;
+    font-weight: 500;
+    color: var(--gmaps-text-primary);
+    transition: all var(--trans-fast);
+}
+
+.gmaps-narrator-btn:hover {
+    background: var(--gmaps-bg);
+    border-color: var(--gmaps-text-secondary);
+}
+
+.status-open {
+    color: var(--gmaps-green);
+    font-weight: 500;
+}
+
+.status-closed {
+    color: var(--gmaps-red);
+    font-weight: 500;
+}
+
 /* --- HAMBURGER MENU DRAWER --- */
 .gmaps-drawer {
     position: fixed;

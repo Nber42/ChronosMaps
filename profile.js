@@ -110,9 +110,9 @@ const ProfileSystem = {
         }
 
         let html = '<div class="discovery-list">';
-        [...p.chronedex].reverse().forEach(item => {
+        [...p.chronedex].reverse().forEach((item, index) => {
             html += `
-                <div class="discovery-item-card">
+                <div class="discovery-item-card" onclick="ProfileSystem.viewDiscovery(${p.chronedex.length - 1 - index})">
                     <img src="${item.image}" class="dsc-thumb" loading="lazy">
                     <div class="dsc-info">
                         <div class="dsc-top">
@@ -129,6 +129,34 @@ const ProfileSystem = {
         });
         html += '</div>';
         container.innerHTML = html;
+    },
+
+    viewDiscovery(index) {
+        const item = window.playerState.chronedex[index];
+        if (!item) return;
+
+        // Close profile
+        this.close();
+
+        // Pan to location
+        if (window.map) {
+            window.map.panTo({ lat: item.lat, lng: item.lng });
+            window.map.setZoom(17);
+        }
+
+        // Show in side panel. 
+        // We don't have a placeId here, so we pass full data as chronosData.
+        // The side panel will show the item.image (which is the real Google photo or fallback)
+        window.showPlaceInPanel(null, {
+            nombre: item.name,
+            direccion: item.direccion || "Coleccionado en Chronedex",
+            informacion_historica: item.informacion_historica || "",
+            imagen_real: item.image,
+            rarity: item.rarity,
+            verified: item.verified,
+            lat: item.lat,
+            lng: item.lng
+        });
     },
 
     renderBadges() {

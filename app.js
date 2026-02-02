@@ -12,8 +12,13 @@ let is3DView = false;
 let trafficLayer, transitLayer, bicyclingLayer;
 
 // Configuration
-const DEFAULT_LOCATION = [41.406144, 2.162536];
+const DEFAULT_LOCATION = { lat: 39.4699, lng: -0.3763 }; // Valencia, España
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
+
+// Navigation Stack
+let navigationStack = [];
+let userMarker = null;
+let userAccuracyCircle = null;
 
 // ============================================
 // GOOGLE MAPS UI CONTROLS
@@ -64,11 +69,49 @@ window.goToMyLocation = function () {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
-            map.setCenter(pos);
+            map.panTo(pos);
             map.setZoom(16);
+            updateUserMarker(pos, position.coords.accuracy);
         });
     }
 };
+
+function updateUserMarker(pos, accuracy) {
+    if (userMarker) {
+        userMarker.setPosition(pos);
+    } else {
+        userMarker = new google.maps.Marker({
+            position: pos,
+            map: map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#4285F4",
+                fillOpacity: 1,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 3
+            },
+            zIndex: 999,
+            animation: google.maps.Animation.DROP
+        });
+    }
+
+    if (userAccuracyCircle) {
+        userAccuracyCircle.setCenter(pos);
+        userAccuracyCircle.setRadius(accuracy);
+    } else {
+        userAccuracyCircle = new google.maps.Circle({
+            strokeColor: "#4285F4",
+            strokeOpacity: 0.4,
+            strokeWeight: 1,
+            fillColor: "#4285F4",
+            fillOpacity: 0.15,
+            map: map,
+            center: pos,
+            radius: accuracy
+        });
+    }
+}
 
 // 3D View Toggle
 window.toggle3DView = function () {
@@ -223,30 +266,91 @@ window.BADGES = BADGES;
  * Initialization
  */
 // --- APP ENTRY POINT ---
-window.initApp = function () {
+window.initApp = async function () {
+    // Show loading screen immediately
+    const loadingScreen = document.getElementById('loading-screen');
+
     loadPlayerState();
     if (typeof ProfileSystem !== 'undefined') ProfileSystem.init();
     if (typeof TourSystem !== 'undefined') TourSystem.init();
+
     initMap();
+    if (window.initGoogleServices) window.initGoogleServices();
     renderHUD();
+
+    // Auto-Geolocation Sequence
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                setTimeout(() => {
+                    if (loadingScreen) loadingScreen.classList.add('hidden');
+                    map.panTo(userLocation);
+                    map.setZoom(15);
+                    updateUserMarker(userLocation, position.coords.accuracy);
+
+                    // Search nearby
+                    findNearbyHistoricalPlaces(userLocation);
+                    showToast("📍 Ubicación detectada", "check", "#4285F4");
+                }, 1500);
+            },
+            (error) => {
+                console.log("Geolocation error:", error);
+                setTimeout(() => {
+                    if (loadingScreen) loadingScreen.classList.add('hidden');
+                    map.setCenter(DEFAULT_LOCATION);
+                    map.setZoom(13);
+                    showToast("ℹ️ Ubicación no detectada. Usando Valencia.", "info", "#6b7280");
+                }, 1500);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+    } else {
+        setTimeout(() => {
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+            map.setCenter(DEFAULT_LOCATION);
+            map.setZoom(13);
+        }, 1500);
+    }
 };
+
+function findNearbyHistoricalPlaces(location) {
+    if (typeof placesService === 'undefined' || !placesService) return;
+
+    const request = {
+        location: location,
+        radius: 1000,
+        type: ['tourist_attraction', 'museum', 'church', 'synagogue', 'mosque']
+    };
+
+    placesService.nearbySearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+            // results.forEach(place => addHistoricalMarker(place)); // Existing logic might handle this
+            console.log(`Found ${results.length} historical places near user`);
+        }
+    });
+}
 
 function initMap() {
     infoDisplay = document.getElementById('info-display');
     initialState = document.getElementById('initial-state');
-    const inputElement = document.getElementById('search-input');
-    const searchWrapper = document.querySelector('.search-wrapper');
+    const inputElement = document.getElementById('gmaps-search-input'); // Corrected ID from index.html
+    const searchWrapper = document.querySelector('.gmaps-search-container'); // Updated wrapper selection
     const dropdown = document.createElement('div'); dropdown.className = 'search-dropdown'; dropdown.id = 'search-dropdown';
     if (searchWrapper) searchWrapper.appendChild(dropdown);
 
     // Google Maps Config via Global Namespace
     const mapOptions = {
-        center: { lat: DEFAULT_LOCATION[0], lng: DEFAULT_LOCATION[1] },
-        zoom: 18,
-        mapTypeId: 'satellite', // Requested "Real Mode"
+        center: DEFAULT_LOCATION,
+        zoom: 13,
+        mapTypeId: 'roadmap', // Real map mode
         disableDefaultUI: true, // Clean look
         zoomControl: false,     // Custom controls later if needed, or rely on gestures
-        tilt: 45                // 3D effect
+        tilt: 0                // 2D startup
     };
 
     map = new google.maps.Map(document.getElementById('map'), mapOptions);
@@ -258,17 +362,36 @@ function initMap() {
         closeDropdown();
     });
 
-    // Search Logic (unchanged DOM logic, updated Search Call)
-    if (inputElement) {
-        inputElement.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
-            if (query.length < 3) { closeDropdown(); return; }
-            searchTimeout = setTimeout(() => fetchSuggestions(query), 300);
-        });
-        inputElement.addEventListener('keypress', (e) => { if (e.key === 'Enter') { closeDropdown(); performSearch(inputElement.value); } });
+    // Search Logic (Safely initialized)
+    if (inputElement && window.google && window.google.maps && window.google.maps.places) {
+        try {
+            const autocomplete = new google.maps.places.Autocomplete(inputElement);
+            autocomplete.bindTo('bounds', map);
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+
+                if (!place.geometry || !place.geometry.location) {
+                    window.alert("No se encontraron detalles para: " + place.name);
+                    return;
+                }
+
+                if (place.geometry.viewport) {
+                    map.fitBounds(place.geometry.viewport);
+                } else {
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(17);
+                }
+
+                console.log("Search result found:", place.name);
+                handleMapClick(place.geometry.location.lat(), place.geometry.location.lng());
+            });
+        } catch (e) {
+            console.warn("Search autocomplete failed to init:", e);
+        }
     }
-    document.addEventListener('click', (e) => { if (searchWrapper && !searchWrapper.contains(e.target)) closeDropdown(); });
+
+
 
     // --- SEED CURATED CONTENT ---
     if (typeof CURATED_POIS !== 'undefined') {
@@ -296,10 +419,12 @@ function initMap() {
             });
 
             marker.addListener("click", () => {
-                // Determine if we show popup or just open the story directly?
-                // Per UX, opening story directly is smoother
-                // infowindow.setContent(`<b style="color:#f59e0b">Legendary</b><br>${poi.title}`);
-                // infowindow.open(map, marker);
+                infowindow.setContent(`<div style="padding:10px; font-family:sans-serif;">
+                    <b style="color:#f59e0b; font-size:12px;">LEGENDRARIO</b><br>
+                    <div style="font-weight:700; font-size:15px; margin:5px 0;">${poi.title}</div>
+                    <div style="color:#64748b; font-size:13px;">Haz clic para ver la historia completa</div>
+                </div>`);
+                infowindow.open(map, marker);
                 handleMapClick(poi.coords[0], poi.coords[1]);
             });
         });
@@ -340,7 +465,7 @@ window.activateRadar = function () {
 };
 
 // ... In initMap, remove L.control.zoom if we disabled default UI. 
-// We can re-add custom zoom buttons if needed, but gestures work fine on mobile.
+// We can re-add custom custom buttons if needed, but gestures work fine on mobile.
 
 function placeMarker(lat, lng) {
     if (marker) marker.setMap(null); // Remove previous
@@ -472,13 +597,15 @@ function renderHUD() {
         document.body.appendChild(hud);
     }
     const av = playerState.avatar || '🤠';
+    const level = playerState.level || 1;
 
-    // NOTE: Onclick now calls handleProfileClick
+    // Update the modern avatar in the header
+    const headerAvatarEmoji = document.getElementById('header-avatar-emoji');
+    const headerLevelBadge = document.getElementById('header-level-badge');
+    if (headerAvatarEmoji) headerAvatarEmoji.textContent = av;
+    if (headerLevelBadge) headerLevelBadge.textContent = level;
+
     hud.innerHTML = `
-        <div class="profile-btn" onclick="handleProfileClick()" title="Perfil">
-            ${av}
-        </div>
-        <div style="width:1px; height:20px; background:#e5e7eb;"></div>
         <div class="hud-item">
             <i class="fa-solid fa-trophy hud-icon" style="color:#f59e0b;"></i>
             <span class="hud-val">${playerState.level}</span>
@@ -522,123 +649,251 @@ function renderRadarBtn() {
 
 
 async function handleMapClick(lat, lng) {
+    console.log("handleMapClick triggered for:", lat, lng);
     placeMarker(lat, lng);
-    showLoading();
     stopAudio();
 
-    // Use Google Places Nearby Search to find the place at these coordinates
-    const location = new google.maps.LatLng(lat, lng);
+    // 1. INSTANT INTERACTION: Show Quick Card immediately
+    // DISABLED per user request: "remove full card, keep info"
+    /*
+    if (window.POIQuickCardInstance) {
+        window.POIQuickCardInstance.show({
+            lat: lat,
+            lng: lng,
+            name: "" // Loading skeleton
+        });
+    }
+    */
 
-    // First, try to find a nearby place
-    if (typeof placesService !== 'undefined' && placesService) {
+    // Background Panel Loading (Hidden or secondary)
+    const pc = document.getElementById('panel-content');
+    if (pc) {
+        pc.innerHTML = '<div id="chronos-loading-state" style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; color:#666;">Buscando en la línea del tiempo...</p></div>';
+    }
+
+    const location = new google.maps.LatLng(lat, lng);
+    const srv = window.placesService;
+
+    if (srv) {
         const request = {
             location: location,
-            radius: 50, // 50 meters radius
-            fields: ['place_id', 'name', 'geometry']
+            radius: 50,
+            type: ['point_of_interest', 'establishment', 'landmark']
         };
 
-        placesService.nearbySearch(request, (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-                // Found a place! Get its full details with photos
-                getPlaceDetails(results[0].place_id, (place) => {
-                    if (place) {
-                        // Show place in side panel with real Google photos
-                        showPlaceInPanel(place);
+        let searchTimedOut = false;
+        const searchTimeout = setTimeout(() => {
+            searchTimedOut = true;
+            console.warn("nearbySearch timed out, jumping to fallback.");
+            handleMapClickFallback(lat, lng);
+        }, 3000);
 
-                        // Add to Chronedex
-                        const data = {
-                            nombre: place.name,
-                            lat: lat,
-                            lng: lng,
-                            rarity: determineRarity(),
-                            imagen_real: place.photos && place.photos.length > 0 ? place.photos[0].getUrl({ maxWidth: 400 }) : null,
-                            direccion: place.formatted_address
-                        };
+        try {
+            srv.nearbySearch(request, (results, status) => {
+                if (searchTimedOut) return;
+                clearTimeout(searchTimeout);
 
-                        if (!hasDiscovered(lat, lng)) {
-                            if (typeof SoundFX !== 'undefined') SoundFX.playDiscovery(data.rarity);
-                            awardXP(data.rarity);
-                            addToChronedex(data);
-                            triggerConfetti(data.rarity === RARITY.LEGENDARY);
-                            playerState.stats.discoveries++;
-                            if (data.rarity === RARITY.LEGENDARY) playerState.stats.legendaries++;
-                            checkAchievements();
-                            savePlayerState();
+                console.log("nearbySearch callback status:", status);
+                if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                    console.log("Found nearby places:", results.length);
+                    window.getPlaceDetails(results[0].place_id, async (place) => {
+                        console.log("getPlaceDetails callback for:", place ? place.name : "null");
+                        try {
+                            const curated = (typeof findCuratedStory !== 'undefined') ? findCuratedStory(lat, lng) : null;
+
+                            const data = {
+                                id: place ? place.place_id : null,
+                                nombre: place ? (place.name || "Lugar") : "Lugar",
+                                lat: lat,
+                                lng: lng,
+                                rarity: determineRarity(),
+                                imagen_real: (place && place.photos && place.photos.length > 0) ? place.photos[0].getUrl({ maxWidth: 800 }) : null,
+                                direccion: (place && place.formatted_address) ? place.formatted_address : "Dirección no disponible",
+                                verified: !!curated
+                            };
+
+                            const aiCuriosity = generateAICuriosity({ ...data, types: (place ? (place.types || []) : []) });
+
+                            // Add raw AI text to data for UI components
+                            data.aiCuriosity = aiCuriosity;
+
+                            if (curated) {
+                                data.informacion_historica = curated.text;
+                                data.rarity = RARITY.LEGENDARY;
+                            } else {
+                                let wikiText = await fetchWikipedia(data.nombre, lat, lng);
+                                if (!wikiText && data.nombre) {
+                                    const cleanName = data.nombre.split(',')[0].trim();
+                                    if (cleanName !== data.nombre) wikiText = await fetchWikipedia(cleanName, lat, lng);
+                                }
+
+                                if (wikiText) {
+                                    data.informacion_historica = `
+                                    <div class="chronos-ai-insight">
+                                        <div class="ai-label"><span class="material-icons">auto_awesome</span> Chronos AI Insight</div>
+                                        <div class="ai-text">${aiCuriosity}</div>
+                                    </div>
+                                    <div class="historical-facts">
+                                        <div class="facts-label"><span class="material-icons">history_edu</span> Hechos Históricos</div>
+                                        <div class="facts-text">${wikiText}</div>
+                                    </div>
+                                `;
+                                    data.verified = true;
+                                } else {
+                                    data.informacion_historica = `
+                                    <div class="chronos-ai-insight solo">
+                                        <div class="ai-label"><span class="material-icons">auto_awesome</span> Chronos AI Insight</div>
+                                        <div class="ai-text">${aiCuriosity}</div>
+                                    </div>
+                                `;
+                                    data.verified = false;
+                                }
+                            }
+
+                            data.pastImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent("hyper-realistic historical oil painting of " + data.nombre + " in ancient times, detailed architecture, atmospheric, 8k resolution, masterpiece")}?nologo=true`;
+                            window.currentPlaceData = data;
+                            try {
+                                pushToStack('place-detail', { lat, lng, zoom: map.getZoom() });
+                            } catch (e) { }
+
+                            console.log("Calling showPlaceInPanel for:", data.nombre);
+
+                            // UPDATE: Reverted to Side Panel as primary
+                            window.currentPlaceData = data;
+                            window.showPlaceInPanel(place, data);
+                            document.getElementById('panel-back-nav').classList.remove('hidden');
+
+                            /*
+                            // UPDATE QUICK CARD instead of just opening panel
+                            window.currentPlaceData = data;
+                            if (window.POIQuickCardInstance) {
+                                window.POIQuickCardInstance.updateContent(data);
+                            } else {
+                                // Fallback to old panel if QuickCard fails
+                                window.showPlaceInPanel(place, data);
+                                document.getElementById('panel-back-nav').classList.remove('hidden');
+                            }
+                            */
+
+                            if (!hasDiscovered(lat, lng)) {
+                                // handleNewDiscovery(data); // DISABLED: Manual discovery via button
+                            }
+                        } catch (err) {
+                            console.error("Error in getPlaceDetails callback:", err);
+                            handleMapClickFallback(lat, lng);
                         }
-                    } else {
-                        // Fallback to old method
-                        handleMapClickFallback(lat, lng);
-                    }
-                });
-            } else {
-                // No place found nearby, use fallback
-                handleMapClickFallback(lat, lng);
-            }
-        });
+                    });
+                } else {
+                    console.warn("No nearby places found found or error status.");
+                    handleMapClickFallback(lat, lng);
+                }
+            });
+        } catch (e) {
+            clearTimeout(searchTimeout);
+            console.error("Critical error starting nearbySearch:", e);
+            handleMapClickFallback(lat, lng);
+        }
     } else {
-        // Places service not ready, use fallback
         handleMapClickFallback(lat, lng);
     }
 }
 
-// Fallback function for when Google Places doesn't find anything
+function handleNewDiscovery(data) {
+    if (typeof SoundFX !== 'undefined') SoundFX.playDiscovery(data.rarity);
+    awardXP(data.rarity);
+    addToChronedex(data);
+    triggerConfetti(data.rarity === RARITY.LEGENDARY);
+    playerState.stats.discoveries++;
+    if (data.rarity === RARITY.LEGENDARY) playerState.stats.legendaries++;
+    checkAchievements();
+    savePlayerState();
+}
+
 async function handleMapClickFallback(lat, lng) {
-    // Original logic using Nominatim/Wikipedia
-    const curated = (typeof findCuratedStory !== 'undefined') ? findCuratedStory(lat, lng) : null;
+    console.log("Starting fallback for:", lat, lng);
+    try {
+        const curated = (typeof findCuratedStory !== 'undefined') ? findCuratedStory(lat, lng) : null;
 
-    let data = {
-        nombre: "Ubicación Desconocida",
-        tipo: "Coordenada",
-        lat, lng,
-        rarity: determineRarity()
-    };
+        let data = {
+            id: 'custom_' + lat.toFixed(5) + '_' + lng.toFixed(5),
+            nombre: "Lugar Explorador",
+            lat, lng,
+            rarity: determineRarity()
+        };
 
-    if (curated) {
-        data.nombre = curated.title;
-        data.informacion_historica = curated.text;
-        data.rarity = RARITY.LEGENDARY;
-        data.verified = true;
+        if (curated) {
+            data.nombre = curated.title;
+            data.informacion_historica = curated.text;
+            data.rarity = RARITY.LEGENDARY;
+            data.verified = true;
+        }
 
-        const geoData = await reverseGeocode(lat, lng);
-        if (geoData) data.direccion = geoData.display_name;
-        data.imagen_real = await fetchWikiImage(curated.title.split(':')[0]);
-    } else {
         try {
             const geoData = await reverseGeocode(lat, lng);
             if (geoData) {
-                data.nombre = determineBestName(geoData);
-                data.direccion = geoData.display_name;
+                if (!curated) data.nombre = (typeof determineBestName !== 'undefined') ? determineBestName(geoData) : "Lugar Explorador";
+                data.direccion = geoData.display_name || "Dirección no disponible";
             }
+        } catch (e) { console.warn("Fallback geocode failed", e); }
 
-            let wikiText = await fetchWikipedia(data.nombre, lat, lng);
-            if (!wikiText && geoData?.address) {
-                const fallback = geoData.address.city || geoData.address.town;
-                if (fallback) wikiText = await fetchWikipedia(fallback, lat, lng);
+        let wikiText = null;
+        try {
+            wikiText = await fetchWikipedia(data.nombre, lat, lng);
+            if (!wikiText && data.nombre) {
+                const cleanName = data.nombre.split(',')[0].trim();
+                if (cleanName !== data.nombre) wikiText = await fetchWikipedia(cleanName, lat, lng);
             }
-            data.informacion_historica = wikiText;
-            data.resumen = wikiText ? truncateText(wikiText, 180) : "Información no disponible.";
-            data.imagen_real = await fetchWikiImage(data.nombre);
-        } catch (error) {
-            console.error(error);
-            displayError("No info.");
+        } catch (e) { console.warn("Fallback wiki failed", e); }
+
+        if (wikiText) {
+            const aiCuriosity = generateAICuriosity(data);
+            data.aiCuriosity = aiCuriosity; // Store for UI
+            data.informacion_historica = `
+                <div class="chronos-ai-insight">
+                    <div class="ai-label"><span class="material-icons">auto_awesome</span> Chronos AI Insight</div>
+                    <div class="ai-text">${aiCuriosity}</div>
+                </div>
+                <div class="historical-facts">
+                    <div class="facts-label"><span class="material-icons">history_edu</span> Hechos Históricos</div>
+                    <div class="facts-text">${wikiText}</div>
+                </div>
+            `;
+            data.verified = true;
+        } else if (curated) {
+            data.informacion_historica = curated.text;
+            data.aiCuriosity = curated.text; // Use curated text as AI insight
+        } else {
+            const aiCuriosity = generateAICuriosity(data);
+            data.aiCuriosity = aiCuriosity; // Store for UI
+            data.informacion_historica = `
+                <div class="chronos-ai-insight solo">
+                    <div class="ai-label"><span class="material-icons">auto_awesome</span> Chronos AI Insight</div>
+                    <div class="ai-text">${aiCuriosity}</div>
+                </div>
+            `;
         }
-    }
 
-    if (!hasDiscovered(lat, lng)) {
-        if (typeof SoundFX !== 'undefined') SoundFX.playDiscovery(data.rarity);
-        awardXP(data.rarity);
-        addToChronedex(data);
-        triggerConfetti(data.rarity === RARITY.LEGENDARY);
-        playerState.stats.discoveries++;
-        if (data.rarity === RARITY.LEGENDARY) playerState.stats.legendaries++;
-        checkAchievements();
-        savePlayerState();
-    }
+        data.resumen = data.informacion_historica ? truncateText(data.informacion_historica, 180) : "";
 
-    renderUI(data);
+        try {
+            data.imagen_real = await fetchWikiImage(data.nombre);
+        } catch (e) { }
+        data.pastImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent("historical painting of " + data.nombre + " ancient architecture")}?nologo=true`;
+
+        if (!hasDiscovered(lat, lng)) {
+            // handleNewDiscovery(data); // DISABLED: Manual discovery via button
+        }
+
+        console.log("Calling showPlaceInPanel (fallback) for:", data.nombre);
+        window.currentPlaceData = data; // For sharing
+        window.showPlaceInPanel(null, data);
+    } catch (err) {
+        console.error("CRITICAL FALLBACK ERROR:", err);
+        const pc = document.getElementById('panel-content');
+        if (pc) pc.innerHTML = '<div style="padding:20px; color:red;">Error al cargar información. Por favor, intenta de nuevo.</div>';
+    }
 }
 
-// ... (Other helpers same as before)
 function addToChronedex(data) {
     playerState.chronedex.push({ id: Date.now(), date: Date.now(), name: data.nombre, lat: data.lat, lng: data.lng, rarity: data.rarity, image: data.imagen_real });
     savePlayerState();
@@ -697,82 +952,92 @@ window.toggleHistory = function (btn) {
 
 function stopAudio() { if (speechSynth.speaking) speechSynth.cancel(); const btn = document.getElementById('narrator-btn'); if (btn) btn.style.borderColor = ""; if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Escuchar"; }
 
-function renderUI(data) {
-    initialState.style.display = 'none';
-    currentPlaceData = data; // Set global for sharing
 
-    const seed = Math.floor(Math.random() * 100000);
-    const aiCurrentUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent("photorealistic 8k image of " + data.nombre)}?nologo=true&seed=${seed}`;
-    const displayCurrentUrl = data.imagen_real ? data.imagen_real : aiCurrentUrl;
-    // Update data with the URL we actually used (for the card)
-    currentPlaceData.imagen_real = displayCurrentUrl;
+// --- END OF UI HELPERS ---
 
-    const pastImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent("historical painting of " + data.nombre + " ancient")}?nologo=true&seed=${seed + 1}`;
+// --- NAVIGATION SYSTEM ---
+window.pushToStack = function (view, state) {
+    navigationStack.push({
+        view: view,
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        state: state
+    });
+    console.log("Pushed to stack:", view, navigationStack.length);
+};
 
-    const verifiedBadge = data.verified ? `<div class="verified-badge"><i class="fa-solid fa-certificate"></i> Historia Verificada</div>` : '';
+window.goBack = function () {
+    if (navigationStack.length === 0) {
+        window.closeSidePanel();
+        document.getElementById('panel-back-nav').classList.add('hidden');
+        return;
+    }
 
-    const historySection = data.informacion_historica ?
-        `<div class="feature-card">
-            <h3><i class="fa-solid fa-book-open"></i> Historia</h3>
-            
-            <div class="history-content-wrapper">
-                <div class="history-teaser">
-                    <p>${data.resumen}</p>
-                </div>
-                <div class="history-full hidden">
-                    <div class="historical-text">${data.informacion_historica}</div>
-                </div>
-            </div>
-            
-            <button class="read-more-btn" onclick="toggleHistory(this)">
-                Saber más <i class="fa-solid fa-chevron-down"></i>
-            </button>
+    const prevState = navigationStack.pop();
+    console.log("Popping from stack:", prevState.view);
 
-            <div class="audio-player" id="narrator-btn" onclick="toggleNarrator('${data.informacion_historica.replace(/'/g, "\\'").replace(/<\/?[^>]+(>|$)/g, "")}')">
-                <div class="audio-label"><i class="fa-solid fa-headphones"></i> Escuchar</div>
-                <div class="audio-status" id="narrator-status">Escuchar</div>
-            </div>
-        </div>`
-        : `<div class="feature-card" style="color:#6b7280; text-align:center;">Sin datos históricos.</div>`;
+    if (prevState.view === 'place-detail' || prevState.view === 'map') {
+        window.closeSidePanel();
+    }
 
-    infoDisplay.innerHTML = `
-        <div class="image-comparison-container">
-            <div class="image-card"><img src="${displayCurrentUrl}" onerror="this.src='${aiCurrentUrl}'"><div class="image-label">Hoy</div></div>
-            <div class="image-card"><img src="${pastImgUrl}"><div class="image-label">Ayer</div></div>
-        </div>
-        <div class="content-padding">
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                ${verifiedBadge}
-                <div class="rarity-badge ${data.rarity.class}"><i class="fa-solid fa-star"></i> ${data.rarity.label}</div>
-            </div>
-            <h1 class="place-title">${data.nombre}</h1>
-            <div class="place-location"><i class="fa-solid fa-location-dot"></i> <span>${data.direccion || "?"}</span></div>
-            ${historySection}
-            <div style="margin-top:24px;"><button class="action-btn" onclick="shareDiscovery()"><i class="fa-solid fa-share-nodes"></i> Compartir</button></div>
-        </div>`;
+    map.panTo(prevState.center);
+    map.setZoom(prevState.zoom);
+
+    if (navigationStack.length === 0) {
+        document.getElementById('panel-back-nav').classList.add('hidden');
+    }
+};
+
+// Listen for ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (navigationStack.length > 0) {
+            goBack();
+        } else {
+            window.closeSidePanel();
+        }
+    }
+});
+
+// Swipe to back logic
+let touchStartX = 0;
+const panel = document.getElementById('side-panel');
+if (panel) {
+    panel.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+
+    panel.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const swipeDistance = touchEndX - touchStartX;
+
+        if (swipeDistance > 100) { // Swipe right to go back
+            goBack();
+        }
+    }, { passive: true });
 }
-
 // --- SOCIAL SHARING ---
 let currentPlaceData = null; // Global reference for sharing
 
 window.shareDiscovery = async function () {
     const btn = document.querySelector('.action-btn');
+    if (!btn) return;
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
 
     try {
-        const file = await generateSocialCard(currentPlaceData);
+        const file = await generateSocialCard(window.currentPlaceData || currentPlaceData);
 
         if (navigator.share && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 title: 'Chronos Maps Discovery',
-                text: `¡He descubierto ${currentPlaceData.nombre} en Chronos Maps! 🌍✨ #ChronosMaps`,
+                text: `¡He descubierto ${(window.currentPlaceData || currentPlaceData).nombre} en Chronos Maps! 🌍✨ #ChronosMaps`,
                 files: [file]
             });
         } else {
             // Fallback: Download the image
             const link = document.createElement('a');
-            link.download = `chronos-${currentPlaceData.nombre.replace(/\s+/g, '-').toLowerCase()}.png`;
+            link.download = `chronos-${(window.currentPlaceData || currentPlaceData).nombre.replace(/\s+/g, '-').toLowerCase()}.png`;
             link.href = URL.createObjectURL(file);
             link.click();
             alert("Imagen descargada. ¡Compártela manualmente!");
@@ -780,7 +1045,8 @@ window.shareDiscovery = async function () {
     } catch (e) {
         console.error("Share error:", e);
         // Text fallback
-        navigator.share ? navigator.share({ title: 'Chronos', text: `Descubrí ${currentPlaceData.nombre} en Chronos!`, url: window.location.href }) : alert(`Descubrí ${currentPlaceData.nombre}`);
+        const data = window.currentPlaceData || currentPlaceData;
+        navigator.share ? navigator.share({ title: 'Chronos', text: `Descubrí ${data.nombre} en Chronos!`, url: window.location.href }) : alert(`Descubrí ${data.nombre}`);
     } finally {
         btn.innerHTML = originalText;
     }
@@ -796,28 +1062,27 @@ async function generateSocialCard(data) {
     }
 
     const imgUrl = data.imagen_real || `https://image.pollinations.ai/prompt/photorealistic 8k image of ${data.nombre}?nologo=true`;
-    // Use Proxy for CORS if needed, but Pollinations/Wiki usually fine with crossOrigin="anonymous"
 
     const rarityColor = data.rarity.class === 'legendary' ? '#f59e0b' : (data.rarity.class === 'rare' ? '#3b82f6' : '#9ca3af');
 
     card.innerHTML = `
-        <div class="sc-image-container">
-            <img src="${imgUrl}" crossorigin="anonymous" class="sc-image">
-            <div class="sc-overlay"></div>
-        </div>
-        <div class="sc-content">
-            <div class="sc-branding">CHRONOS MAPS</div>
-            <div class="sc-title">${data.nombre}</div>
-            <div class="sc-rarity" style="color:${rarityColor}; border-color:${rarityColor}">
-                ${data.rarity.label.toUpperCase()}
-            </div>
-            <div class="sc-user">
-                <span class="sc-avatar">${playerState.avatar}</span>
-                <span>Descubierto por <b>${playerState.username || 'Explorador'}</b></span>
-            </div>
-            <div class="sc-footer">historia.cultura.mundo</div>
-        </div>
-    `;
+<div class="sc-image-container">
+<img src="${imgUrl}" crossorigin="anonymous" class="sc-image">
+<div class="sc-overlay"></div>
+</div>
+<div class="sc-content">
+<div class="sc-branding">CHRONOS MAPS</div>
+<div class="sc-title">${data.nombre}</div>
+<div class="sc-rarity" style="color:${rarityColor}; border-color:${rarityColor}">
+${data.rarity.label.toUpperCase()}
+</div>
+<div class="sc-user">
+<span class="sc-avatar">${playerState.avatar}</span>
+<span>Descubierto por <b>${playerState.username || 'Explorador'}</b></span>
+</div>
+<div class="sc-footer">historia.cultura.mundo</div>
+</div>
+`;
 
     // 2. Wait for image to load
     const img = card.querySelector('img');
@@ -892,11 +1157,85 @@ async function performSearch(q) {
         handleMapClick(lat, lng);
     }
 }
-async function reverseGeocode(lat, lng) { try { return await fetch(`${NOMINATIM_BASE}/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18`).then(r => r.json()); } catch { return null; } }
-async function fetchWikipedia(q, lat, lng) { if (!q || q.includes("Ubicación")) return null; try { const s = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&origin=*`).then(r => r.json()); if (s.query.search[0]) { const p = await fetch(`https://es.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(s.query.search[0].title)}&format=json&origin=*`).then(r => r.json()); return Object.values(p.query.pages)[0].extract; } } catch { } return null; }
+async function reverseGeocode(lat, lng) {
+    console.log("reverseGeocode started...");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+    try {
+        const url = `${NOMINATIM_BASE}/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await res.json();
+        console.log("Geocode success:", data ? data.display_name : "null");
+        return data;
+    } catch (e) {
+        console.warn("Geocode error or timeout", e);
+        return null;
+    }
+}
+
+async function fetchWikipedia(title, lat, lng) {
+    console.log("fetchWikipedia started for:", title);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+    try {
+        const url = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) return null;
+        const data = await res.json();
+        console.log("Wiki fetch success");
+        return data.extract;
+    } catch (e) {
+        console.warn("Wiki error or timeout", e);
+        return null;
+    }
+}
 // placeMarker is defined above
 function determineBestName(g) { const a = g.address; return a.amenity || a.building || a.tourism || a.historic || a.road || g.name || "Ubicación"; }
 function formatType(t) { return t.replace(/_/g, ' '); }
 function truncateText(t, l) { return t.length <= l ? t : t.substring(0, l) + '...'; }
 function showLoading() { initialState.style.display = 'none'; infoDisplay.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>'; }
 function displayError(m) { infoDisplay.innerHTML = `<div style="padding:20px;text-align:center;color:red;">${m}</div>`; }
+
+/**
+ * Chronos AI - Curiosity Generator
+ * Generates interesting, themed facts based on place type.
+ */
+function generateAICuriosity(data) {
+    const type = (data.types && data.types[0]) ? data.types[0] : 'place';
+    const name = data.nombre || 'este lugar';
+
+    const library = {
+        'restaurant': [
+            `Este establecimiento culinario guarda secretos de sabores que han evolucionado a través de los siglos. ¿Sabías que en este punto exacto se cocinaban platos tradicionales mucho antes de la era moderna?`,
+            `La gastronomía aquí no es solo comida, es una cápsula del tiempo. Chronos detecta ecos de festines antiguos en los cimientos de ${name}.`,
+            `En el pasado, los viajeros se detenían cerca de aquí para intercambiar especias exóticas. ${name} continúa esa tradición de encuentro social.`
+        ],
+        'park': [
+            `Bajo estas raíces, Chronos detecta sedimentos de eras geológicas pasadas. Este parque fue una vez parte de un ecosistema salvaje que dominaba la región.`,
+            `${name} es un portal a la naturaleza antigua. Cada árbol aquí es un testigo silencioso del crecimiento de la ciudad a su alrededor.`,
+            `Hace décadas, este terreno era el límite de la civilización conocida. Hoy, es un refugio atemporal en el corazón urbano.`
+        ],
+        'church': [
+            `La arquitectura espiritual de ${name} canaliza energías de siglos de devoción. Chronos indica que los planos originales se inspiraron en constelaciones antiguas.`,
+            `Las piedras de este lugar han escuchado susurros de la historia que los libros han olvidado. Es un nodo de conexión con el pasado sagrado.`,
+            `Cada vitral y columna de ${name} es un código visual que narra la evolución del pensamiento humano en esta región.`
+        ],
+        'museum': [
+            `Chronos detecta una alta concentración de 'memoria residual' aquí. Este edificio no solo guarda objetos, sino fragmentos literales de tiempo congelado.`,
+            `${name} es el ancla que impide que la historia se desvanezca. Los tesoros que alberga son llaves para entender el futuro.`,
+            `Caminar por ${name} es técnicamente viajar en el tiempo. La IA sugiere prestar atención a las sombras; a veces cuentan más que las placas.`
+        ],
+        'default': [
+            `Chronos AI detecta que este rincón de la ciudad fue un punto clave para eventos que cambiaron el curso del barrio.`,
+            `Aunque parece un lugar cotidiano, ${name} se asienta sobre capas de historia invisibles para el ojo humano.`,
+            `En la línea de tiempo alternativa, este lugar era el centro de un imperio. En nuestra realidad, es un fragmento esencial de la identidad local.`,
+            `La IA de Chronos sugiere que ${name} tiene una 'firma temporal' única, indicando que eventos importantes ocurrirán aquí pronto... o ya ocurrieron.`
+        ]
+    };
+
+    const category = library[type] ? type : 'default';
+    const options = library[category];
+    return options[Math.floor(Math.random() * options.length)];
+}

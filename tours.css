@@ -1,0 +1,413 @@
+/* GUIDED TOURS & STORYTELLING UI */
+
+/* 1. Modal & Grid (Enhanced) */
+#tours-modal {
+    z-index: 10001;
+    /* Above everything */
+}
+
+.tour-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 10px 0;
+}
+
+.tour-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.tour-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* New Adventure Card Style */
+.tour-card.create-new {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 2px dashed #3b82f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    text-align: center;
+    color: #2563eb;
+}
+
+.tour-card.create-new:hover {
+    background: #e0f2fe;
+    border-color: #2563eb;
+}
+
+.create-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    background: white;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+}
+
+.tour-img-container {
+    height: 140px;
+    position: relative;
+    overflow: hidden;
+}
+
+.tour-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.tour-card:hover .tour-img {
+    transform: scale(1.05);
+}
+
+.tour-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+.tour-info {
+    padding: 16px;
+}
+
+.tour-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.tour-desc {
+    font-size: 13px;
+    color: #4b5563;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    line-clamp: 2;
+    /* Compatibility */
+}
+
+.tour-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* 2. Tour Player (Bottom Overlay) */
+.tour-player-overlay {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 9000;
+    transform: translateY(110%);
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.tour-player-overlay.active {
+    transform: translateY(0);
+}
+
+.tp-header {
+    padding: 20px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tp-series-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.tp-close-btn {
+    background: #f3f4f6;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tp-content {
+    padding: 16px 24px 24px;
+    overflow-y: auto;
+}
+
+.tp-chapter-indicator {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+
+.tp-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.tp-body {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #374151;
+    margin-bottom: 24px;
+}
+
+.tp-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.tp-btn {
+    flex: 1;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: transform 0.1s;
+}
+
+.tp-btn:active {
+    transform: scale(0.98);
+}
+
+.tp-btn-primary {
+    background: #2563eb;
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.tp-btn-secondary {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+/* Audio Wave Animation */
+.audio-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+}
+
+.audio-bar {
+    width: 3px;
+    background: currentColor;
+    border-radius: 2px;
+    animation: wave 1s ease-in-out infinite;
+}
+
+.audio-bar:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.audio-bar:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.audio-bar:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+@keyframes wave {
+
+    0%,
+    100% {
+        height: 4px;
+    }
+
+    50% {
+        height: 16px;
+    }
+}
+
+/* Generation Overlay */
+.generator-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+.generator-hidden {
+    display: none;
+}
+
+.gen-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.gen-status {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.gen-sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Progress Line on Map (handled by JS via Polyline, but markers styles below) */
+.tour-marker-label {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 14px;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+
+    .tour-card,
+    .tour-player-overlay {
+        background: rgba(31, 41, 55, 0.95);
+        color: white;
+    }
+
+    .tour-title,
+    .tp-title {
+        color: white;
+    }
+
+    .tour-desc,
+    .tp-body {
+        color: #d1d5db;
+    }
+
+    .tp-close-btn {
+        background: #374151;
+        color: white;
+    }
+
+    .tp-btn-secondary {
+        background: #374151;
+        color: #60a5fa;
+    }
+
+    .tour-card.create-new {
+        background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+        border-color: #3b82f6;
+        color: #93c5fd;
+    }
+
+    .create-icon {
+        background: #1e40af;
+        color: white;
+        box-shadow: none;
+    }
+
+    .generator-overlay {
+        background: rgba(31, 41, 55, 0.98);
+    }
+
+    .gen-status {
+        color: white;
+    }
+
+    .gen-sub {
+        color: #9ca3af;
+    }
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+    .tour-player-overlay {
+        width: 400px;
+        left: 24px;
+        bottom: 24px;
+        border-radius: 24px;
+        max-height: 600px;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .tour-player-overlay.active {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
