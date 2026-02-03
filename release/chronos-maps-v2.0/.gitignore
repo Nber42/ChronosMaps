@@ -1,0 +1,10 @@
+# Chronos Maps
+API_OPENAI.txt
+chronos_data.db
+*.db
+*.pyc
+__pycache__/
+.DS_Store
+node_modules/
+.env
+*.log

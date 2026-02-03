@@ -39,7 +39,6 @@ const TourSystem = {
     currentChapterIndex: -1,
     polylines: [],
     markers: [],
-    currentCity: "tu ciudad",
 
     // State
     isPlayerOpen: false,
@@ -82,7 +81,8 @@ const TourSystem = {
         document.body.appendChild(div);
     },
 
-    async openModal() {
+    openModal() {
+        // Create modal structure if not exists
         let tm = document.getElementById('tours-modal');
         if (!tm) {
             tm = document.createElement('div');
@@ -91,88 +91,61 @@ const TourSystem = {
             tm.innerHTML = `
                 <div class="modal-card wide">
                     <div class="modal-header">
-                        <h2 class="modal-title"><i class="fa-solid fa-route tour-modal-header-icon"></i> Rutas Guiadas</h2>
+                        <h2 class="modal-title"><i class="fa-solid fa-route" style="color:#f59e0b;"></i> Rutas Guiadas</h2>
                         <button class="close-btn" onclick="TourSystem.closeModal()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     
-                    <div id="tour-city-header" class="tour-city-header">
-                        Explora los secretos de <strong id="tour-city-name">tu ubicación</strong>.
-                    </div>
-
-                    <div class="tour-topic-container">
-                        <input type="text" id="tour-topic-input" class="gmaps-search-input tour-topic-input" placeholder="¿De qué quieres tu aventura? Ej: Templarios, Guerra Civil...">
-                        <button class="gmaps-action-btn primary tour-topic-btn" onclick="TourSystem.handleCreateClick()">
-                            <span class="material-icons">auto_awesome</span> Crear
+                    <!-- Search/Create Bar -->
+                    <div style="margin-bottom:16px; display:flex; gap:8px;">
+                        <input type="text" id="tour-topic-input" class="gmaps-search-input" style="flex:1;" placeholder="Ej. 'Segunda Guerra Mundial', 'Templarios en París'...">
+                        <button class="gmaps-action-btn primary" onclick="TourSystem.handleCreateClick()">
+                            <span class="material-icons">auto_awesome</span> Crear Aventura
                         </button>
                     </div>
 
                     <div id="tours-grid" class="tour-grid"></div>
 
+                    <!-- Generator Overlay -->
                     <div id="tour-generator" class="generator-overlay generator-hidden">
                         <div class="gen-spinner"></div>
                         <div class="gen-status" id="gen-status-text">Consultando archivos históricos...</div>
-                        <div class="gen-sub">La IA está diseñando una ruta personalizada para ti</div>
+                        <div class="gen-sub">Chronos AI está analizando millones de registros</div>
                     </div>
                 </div>
             `;
             document.body.appendChild(tm);
 
+            // Focus Handling
             const input = document.getElementById('tour-topic-input');
             if (input) input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') TourSystem.handleCreateClick();
             });
         }
 
-        tm.classList.remove('hidden');
-        await this.updateCityInfo();
         this.renderList();
-    },
-
-    async updateCityInfo() {
-        const cityNameEl = document.getElementById('tour-city-name');
-        if (!cityNameEl || !window.chronosMap) return;
-
-        try {
-            const geocoder = new google.maps.Geocoder();
-            const location = window.chronosMap.getCenter();
-            const results = await new Promise((resolve) => {
-                geocoder.geocode({ location: location }, (res, status) => {
-                    resolve(status === 'OK' ? res : null);
-                });
-            });
-
-            if (results && results[0]) {
-                const cityComp = results[0].address_components.find(c => c.types.includes('locality'));
-                this.currentCity = cityComp ? cityComp.long_name : "tu zona";
-                cityNameEl.innerText = this.currentCity;
-            }
-        } catch (e) {
-            console.warn("Geocoding failed", e);
-        }
+        tm.classList.remove('hidden');
     },
 
     closeModal() {
-        const tm = document.getElementById('tours-modal');
-        if (tm) tm.classList.add('hidden');
+        if (document.getElementById('tours-modal')) document.getElementById('tours-modal').classList.add('hidden');
     },
 
     renderList() {
         const grid = document.getElementById('tours-grid');
-        if (!grid) return;
         grid.innerHTML = '';
 
-        // 1. New Adventure Card
+        // 1. Create New Card (Visual shortcut)
         const createCard = document.createElement('div');
         createCard.className = 'tour-card create-new';
         createCard.onclick = () => document.getElementById('tour-topic-input').focus();
         createCard.innerHTML = `
             <div class="create-icon"><span class="material-icons">add_location_alt</span></div>
             <div class="tour-title">Nueva Aventura</div>
-            <div class="tour-desc">Crea una ruta única sobre cualquier tema histórico en ${this.currentCity}.</div>
+            <div class="tour-desc">Escribe cualquier tema o lugar histórico y la IA generará una ruta única para ti.</div>
         `;
         grid.appendChild(createCard);
 
-        // 2. Sample Tours
+        // 2. Existing Tours
         TOURS_DATA.forEach(tour => {
             const el = document.createElement('div');
             el.className = 'tour-card';
@@ -183,7 +156,7 @@ const TourSystem = {
                     <div class="tour-badge">${tour.duration}</div>
                 </div>
                 <div class="tour-info">
-                    <div class="tour-title">${tour.title} <small class="tour-sample-label">(Ejemplo)</small></div>
+                    <div class="tour-title">${tour.title}</div>
                     <div class="tour-desc">${tour.desc}</div>
                     <div class="tour-meta">
                         <span>${tour.difficulty}</span>
@@ -198,74 +171,75 @@ const TourSystem = {
     async handleCreateClick() {
         const input = document.getElementById('tour-topic-input');
         const topic = input.value.trim();
-        if (!topic) {
-            showToast("Escribe un tema para tu aventura", "edit", "#ef4444");
-            return;
-        }
+        if (!topic) return alert("Por favor, escribe un tema histórico.");
 
-        await this.generateRoute(topic);
+        this.generateRoute(topic);
     },
 
     async generateRoute(topic) {
-        if (!window.google || !window.chronosMap) {
-            alert("El mapa no está listo.");
-            return;
+        if (!window.google || !window.google.maps || !window.google.maps.places) {
+            return alert("El servicio de Google Maps no está disponible en este momento.");
         }
 
+        // Show Loading
         const overlay = document.getElementById('tour-generator');
-        const statusText = document.getElementById('gen-status-text');
+        const status = document.getElementById('gen-status-text');
         overlay.classList.remove('generator-hidden');
 
         try {
-            statusText.innerText = `Buscando rastros de "${topic}" en ${this.currentCity}...`;
+            status.innerText = `Investigando sobre "${topic}"...`;
 
-            const service = new google.maps.places.PlacesService(window.chronosMap);
-            const center = window.chronosMap.getCenter();
+            // 1. Search Google Places
+            const service = new google.maps.places.PlacesService(window.map || document.createElement('div'));
 
-            const results = await new Promise((resolve) => {
+            const results = await new Promise((resolve, reject) => {
                 const request = {
-                    query: `${topic} in ${this.currentCity}`,
-                    location: center,
-                    radius: 5000,
-                    fields: ['name', 'geometry', 'photos', 'formatted_address']
+                    query: `Historical sites related to ${topic}`,
+                    fields: ['name', 'geometry', 'photos', 'formatted_address', 'place_id']
                 };
-                service.textSearch(request, (res, status) => {
-                    resolve(status === google.maps.places.PlacesServiceStatus.OK ? res : []);
+                service.textSearch(request, (res, stat) => {
+                    if (stat === google.maps.places.PlacesServiceStatus.OK) resolve(res);
+                    else resolve([]); // Graceful fail
                 });
             });
 
-            if (!results || results.length < 2) {
-                throw new Error("No hay suficientes lugares históricos encontrados para este tema en esta zona.");
-            }
+            if (!results || results.length === 0) throw new Error("No se encontraron lugares.");
 
-            statusText.innerText = "La IA está redactando tu historia...";
-            await new Promise(r => setTimeout(r, 1500));
+            status.innerText = "Diseñando ruta narrativa...";
+            await new Promise(r => setTimeout(r, 1500)); // Fake delay for UX feeling
 
+            // 2. Process Results (Take top 4-5)
             const topPlaces = results.slice(0, 5);
-            const tour = {
+
+            // 3. Construct Tour Object
+            const generatedTour = {
                 id: 'gen_' + Date.now(),
-                title: `${topic}: El misterio de ${this.currentCity}`,
-                desc: `Una expedición histórica personalizada sobre ${topic}.`,
+                title: `Ruta: ${topic}`,
+                desc: `Una aventura única generada por Chronos AI sobre ${topic}.`,
                 difficulty: 'Variable',
-                duration: `${topPlaces.length * 15} min`,
-                color: '#8b5cf6',
-                image: topPlaces[0].photos ? topPlaces[0].photos[0].getUrl({ maxWidth: 600 }) : `https://image.pollinations.ai/prompt/${encodeURIComponent(topic + " " + this.currentCity)}?nologo=true`,
+                duration: `${topPlaces.length * 20} min`,
+                color: '#ec4899', // Pink for AI
+                image: topPlaces[0].photos ? topPlaces[0].photos[0].getUrl({ maxWidth: 400 }) : `https://image.pollinations.ai/prompt/${encodeURIComponent(topic + " history")}?nologo=true`,
                 chapters: topPlaces.map((p, i) => ({
-                    id: `ch_${i}`,
+                    id: `g_${i}`,
                     title: p.name,
                     lat: p.geometry.location.lat(),
                     lng: p.geometry.location.lng(),
-                    text: `Bienvenidos a ${p.name}. Aquí, bajo las crónicas de ${this.currentCity}, descubrimos una conexión vital con ${topic}. Los archivos sugieren que este lugar fue testigo de eventos clave que aún resuenan hoy.`,
-                    aiPrompt: `${topic} ${p.name} cinematic history`
+                    text: `Descubre la maravillosa historia de ${p.name}. Este lugar ha sido seleccionado por la IA como un punto clave para entender ${topic}.`, // Placeholder
+                    aiPrompt: `${topic} ${p.name} vintage historical`
                 }))
             };
 
+            status.innerText = "¡Ruta lista!";
+            await new Promise(r => setTimeout(r, 500));
+
             overlay.classList.add('generator-hidden');
-            this.startTour(tour);
+            this.startTour(generatedTour);
 
         } catch (e) {
+            console.error(e);
             overlay.classList.add('generator-hidden');
-            alert(e.message || "Error al generar la ruta.");
+            alert(`No pude generar una ruta para "${topic}". Intenta ser más específico (ej. "Roma Antigua", "Paris Medieval").`);
         }
     },
 
@@ -275,23 +249,24 @@ const TourSystem = {
         this.currentChapterIndex = 0;
         this.clearMap();
         this.drawRoute();
+
+        // Start Chapter 1
         this.playChapter(0);
 
-        if (window.showToast) {
-            window.showToast(`Iniciando aventura: ${tour.title}`, "explore", tour.color);
-        }
+        showToast(`Iniciando: ${tour.title}`, 'auto_awesome', tour.color);
     },
 
     drawRoute() {
-        if (!window.chronosMap || !this.activeTour) return;
+        if (!window.chronosMap) return;
 
         const path = this.activeTour.chapters.map(c => ({ lat: c.lat, lng: c.lng }));
+
         const polyline = new google.maps.Polyline({
             path: path,
             geodesic: true,
             strokeColor: this.activeTour.color,
             strokeOpacity: 0.8,
-            strokeWeight: 6
+            strokeWeight: 5
         });
         polyline.setMap(window.chronosMap);
         this.polylines.push(polyline);
@@ -300,33 +275,39 @@ const TourSystem = {
             const marker = new google.maps.Marker({
                 position: { lat: chap.lat, lng: chap.lng },
                 map: window.chronosMap,
-                label: { text: (i + 1).toString(), color: "white", fontWeight: "bold" },
+                label: { text: (i + 1) + "", color: "white" },
                 icon: {
                     path: google.maps.SymbolPath.CIRCLE,
-                    scale: 14,
-                    fillColor: this.activeTour.color,
+                    scale: 12,
+                    fillColor: i === 0 ? "#10b981" : this.activeTour.color, // Green for start
                     fillOpacity: 1,
                     strokeColor: "white",
-                    strokeWeight: 3
+                    strokeWeight: 2
                 },
                 title: chap.title
             });
-            marker.addListener('click', () => this.playChapter(i));
+            marker.addListener('click', () => {
+                this.currentChapterIndex = i;
+                this.playChapter(i);
+            });
             this.markers.push(marker);
         });
 
+        // Fit bounds
         const bounds = new google.maps.LatLngBounds();
         path.forEach(p => bounds.extend(p));
         window.chronosMap.fitBounds(bounds);
     },
 
     playChapter(index) {
-        this.currentChapterIndex = index;
+        if (!this.activeTour) return;
         const chap = this.activeTour.chapters[index];
 
+        // Pan Map
         window.chronosMap.panTo({ lat: chap.lat, lng: chap.lng });
-        window.chronosMap.setZoom(17);
+        window.chronosMap.setZoom(18);
 
+        // Update UI
         document.getElementById('tp-series').innerText = this.activeTour.title;
         document.getElementById('tp-chapter-num').innerText = `CAPÍTULO ${index + 1}/${this.activeTour.chapters.length}`;
         document.getElementById('tp-title').innerText = chap.title;
@@ -334,14 +315,17 @@ const TourSystem = {
 
         const nextBtn = document.getElementById('tp-next-btn');
         if (index >= this.activeTour.chapters.length - 1) {
-            nextBtn.innerHTML = '<span>Finalizar</span> <span class="material-icons">flag</span>';
+            nextBtn.innerHTML = '<span>Completar Ruta</span> <span class="material-icons">flag</span>';
             nextBtn.onclick = () => this.finishTour();
         } else {
-            nextBtn.innerHTML = '<span>Continuar</span> <span class="material-icons">arrow_forward</span>';
+            nextBtn.innerHTML = '<span>Siguiente</span> <span class="material-icons">arrow_forward</span>';
             nextBtn.onclick = () => this.nextChapter();
         }
 
+        // Show Player
         document.getElementById('tour-player').classList.add('active');
+
+        // Auto-Play Audio (optional, user requested "Auto opcional"). Let's start silent.
         this.stopAudio();
     },
 
@@ -350,11 +334,19 @@ const TourSystem = {
             this.stopAudio();
         } else {
             const text = this.activeTour.chapters[this.currentChapterIndex].text;
-            if (window.toggleNarrator) {
-                window.toggleNarrator(text);
-                this.isPlayingAudio = true;
-                this.updateAudioUI(true);
-            }
+            this.speak(text);
+        }
+    },
+
+    speak(text) {
+        if (window.toggleNarrator) {
+            // Use existing robust narrator from app.js
+            window.toggleNarrator(text);
+            this.isPlayingAudio = true;
+            this.updateAudioUI(true);
+
+            // Hook into the onend of app.js narrator if possible, or poll state
+            // For now, simpler UI toggle
         }
     },
 
@@ -366,10 +358,15 @@ const TourSystem = {
 
     updateAudioUI(playing) {
         const btn = document.getElementById('tp-audio-btn');
-        if (!btn) return;
+        const label = document.getElementById('tp-audio-label');
         if (playing) {
             btn.classList.add('playing');
-            btn.innerHTML = `<span class="material-icons">pause</span><span>Narrando</span>`;
+            btn.innerHTML = `
+                <div class="audio-wave">
+                    <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+                </div>
+                <span>Narrando...</span>
+            `;
         } else {
             btn.classList.remove('playing');
             btn.innerHTML = `<span class="material-icons">volume_up</span><span>Escuchar</span>`;
@@ -387,10 +384,12 @@ const TourSystem = {
     finishTour() {
         this.stopAudio();
         this.minizePlayer();
-        if (window.showToast) window.showToast("¡Ruta Completada! +500 XP", "military_tech", "#eab308");
+        showToast(`¡Ruta Completada! +500 XP`, 'emoji_events', '#f59e0b');
+        // Award XP
         if (window.playerState) {
             window.playerState.xp += 500;
-            if (window.savePlayerState) window.savePlayerState();
+            window.checkAchievements && window.checkAchievements();
+            window.savePlayerState && window.savePlayerState();
         }
         this.clearMap();
     },
@@ -407,9 +406,11 @@ const TourSystem = {
     }
 };
 
-window.TourSystem = TourSystem;
+// Auto-init if DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => TourSystem.init());
 } else {
     TourSystem.init();
 }
+
+window.TourSystem = TourSystem;

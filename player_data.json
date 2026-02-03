@@ -1,0 +1,15 @@
+{
+    "username": "Verificador",
+    "chronedex": [
+        {
+            "id": "test",
+            "name": "Lugar de Prueba"
+        }
+    ],
+    "stats": {
+        "discoveries": 1
+    },
+    "badges": [],
+    "avatar": "🤠",
+    "xp": 100
+}
