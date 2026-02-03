@@ -367,26 +367,16 @@ window.initApp = async function () {
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
     } else {
-        map.setZoom(13);
-    }, 1500);
-}
-
-// Auto-open drawer on startup (Debug)
-setTimeout(() => {
-    console.log("🚀 Attempting to auto-open drawer...");
-    const drawer = document.getElementById('drawer');
-    if (drawer) {
-        drawer.classList.add('open');
-        console.log("✅ Drawer opened class added");
-    } else {
-        console.error("❌ Drawer element not found");
+        setTimeout(() => {
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+            map.setCenter(DEFAULT_LOCATION);
+            map.setZoom(13);
+        }, 1500);
     }
-}, 2500);
 };
 
 function findNearbyHistoricalPlaces(location) {
-    if (!window.placesService) window.initGoogleServices();
-    if (!window.placesService) return;
+    if (typeof placesService === 'undefined' || !placesService) return;
 
     const request = {
         location: location,
@@ -418,7 +408,7 @@ function addHistoricalMarker(place) {
     // Info Window
     const infowindow = new google.maps.InfoWindow({
         content: `
-            <div class="infowindow-container">
+            <div style="padding:5px;">
                 <strong>${place.name}</strong><br>
                 <small>📍 Haz clic para descubrir su historia</small>
             </div>
@@ -455,9 +445,10 @@ function initMap() {
     const mapOptions = {
         center: DEFAULT_LOCATION,
         zoom: 13,
-        mapTypeId: 'satellite', // Satellite mode by default
-        disableDefaultUI: false, // Standard Google Maps UI
-        tilt: 45                // 3D startup
+        mapTypeId: 'roadmap', // Real map mode
+        disableDefaultUI: true, // Clean look
+        zoomControl: false,     // Custom controls later if needed, or rely on gestures
+        tilt: 0                // 2D startup
     };
 
     window.chronosMap = new google.maps.Map(document.getElementById('chronos-map-canvas'), mapOptions);
@@ -504,10 +495,10 @@ function initMap() {
 
         if (panelContent) {
             panelContent.innerHTML = `
-                <div class="panel-loading-container">
-                    <div class="loading-spinner u-margin-auto"></div>
+                <div style="padding:40px; text-align:center;">
+                    <div class="loading-spinner" style="margin:0 auto 20px auto;"></div>
                     <p>Analizando ubicación...</p>
-                    <small class="u-text-muted">Obteniendo dirección y curiosidades históricas</small>
+                    <small style="color:#666;">Obteniendo dirección y curiosidades históricas</small>
                 </div>
             `;
         }
@@ -648,10 +639,10 @@ function initMap() {
             });
 
             marker.addListener("click", () => {
-                infowindow.setContent(`<div class="infowindow-curated">
-                    <b class="infowindow-tag-legendary">LEGENDRARIO</b><br>
-                    <div class="infowindow-title">${poi.title}</div>
-                    <div class="infowindow-subtitle">Haz clic para ver la historia completa</div>
+                infowindow.setContent(`<div style="padding:10px; font-family:sans-serif;">
+                    <b style="color:#f59e0b; font-size:12px;">LEGENDRARIO</b><br>
+                    <div style="font-weight:700; font-size:15px; margin:5px 0;">${poi.title}</div>
+                    <div style="color:#64748b; font-size:13px;">Haz clic para ver la historia completa</div>
                 </div>`);
                 infowindow.open(map, marker);
                 handleMapClick(poi.coords[0], poi.coords[1]);
@@ -837,7 +828,7 @@ window.openChronedex = function () {
     const grid = document.getElementById('chronedex-grid');
     grid.innerHTML = '';
     if (playerState.chronedex.length === 0) {
-        grid.innerHTML = '<div class="chronedex-empty-state">Aún no hay descubrimientos.</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6b7280;">Aún no hay descubrimientos.</div>';
     } else {
         [...playerState.chronedex].reverse().forEach(item => {
             const el = document.createElement('div');
@@ -875,17 +866,17 @@ function renderHUD() {
 
     hud.innerHTML = `
         <div class="hud-item">
-            <i class="fa-solid fa-trophy hud-icon u-icon-chronodex"></i>
+            <i class="fa-solid fa-trophy hud-icon" style="color:#f59e0b;"></i>
             <span class="hud-val">${playerState.level}</span>
         </div>
         <div class="hud-item" onclick="TourSystem.openModal()" style="cursor:pointer" title="Rutas">
-             <div class="chronedex-btn tour-btn-bg"><i class="fa-solid fa-route"></i></div>
+             <div class="chronedex-btn" style="background:#8b5cf6"><i class="fa-solid fa-route"></i></div>
         </div>
         <div class="hud-item" onclick="openChronedex()" style="cursor:pointer" title="Chronedex">
             <div class="chronedex-btn"><i class="fa-solid fa-book-journal-whills"></i></div>
         </div>
         <div class="hud-item" onclick="toggleSound(this)" style="cursor:pointer" title="Sonido">
-            <i class="fa-solid fa-volume-high" id="sound-icon" class="u-text-success"></i>
+            <i class="fa-solid fa-volume-high" id="sound-icon" style="color:#10b981;"></i>
         </div>
     `;
 
@@ -898,12 +889,10 @@ window.toggleSound = function (el) {
         const icon = el.querySelector('i');
         if (enabled) {
             icon.className = 'fa-solid fa-volume-high';
-            icon.classList.add('u-text-success');
-            icon.classList.remove('u-text-muted');
+            icon.style.color = '#10b981';
         } else {
             icon.className = 'fa-solid fa-volume-xmark';
-            icon.classList.add('u-text-muted');
-            icon.classList.remove('u-text-success');
+            icon.style.color = '#6b7280';
         }
     }
 };
@@ -938,7 +927,7 @@ async function handleMapClick(lat, lng) {
     // Background Panel Loading (Hidden or secondary)
     const pc = document.getElementById('panel-content');
     if (pc) {
-        pc.innerHTML = '<div id="chronos-loading-state" class="panel-loading-container"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p class="u-margin-top-10 u-text-muted">Buscando en la línea del tiempo...</p></div>';
+        pc.innerHTML = '<div id="chronos-loading-state" style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; color:#666;">Buscando en la línea del tiempo...</p></div>';
     }
 
     const location = new google.maps.LatLng(lat, lng);
@@ -1160,7 +1149,7 @@ async function handleMapClickFallback(lat, lng) {
     } catch (err) {
         console.error("CRITICAL FALLBACK ERROR:", err);
         const pc = document.getElementById('panel-content');
-        if (pc) pc.innerHTML = '<div class="panel-error-container">Error al cargar información. Por favor, intenta de nuevo.</div>';
+        if (pc) pc.innerHTML = '<div style="padding:20px; color:red;">Error al cargar información. Por favor, intenta de nuevo.</div>';
     }
 }
 
@@ -1194,7 +1183,7 @@ window.toggleNarrator = function (text) {
         speechSynth.speak(currentUtterance);
         const btn = document.getElementById('narrator-btn');
         if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Reproduciendo...";
-        if (btn) btn.classList.add('narrator-active');
+        if (btn) btn.style.borderColor = "#2563eb";
         currentUtterance.onend = () => {
             stopAudio();
             // Achievement
@@ -1220,7 +1209,7 @@ window.toggleHistory = function (btn) {
     }
 };
 
-function stopAudio() { if (speechSynth.speaking) speechSynth.cancel(); const btn = document.getElementById('narrator-btn'); if (btn) btn.classList.remove('narrator-active'); if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Escuchar"; }
+function stopAudio() { if (speechSynth.speaking) speechSynth.cancel(); const btn = document.getElementById('narrator-btn'); if (btn) btn.style.borderColor = ""; if (document.getElementById('narrator-status')) document.getElementById('narrator-status').innerText = "Escuchar"; }
 
 
 // --- END OF UI HELPERS ---
@@ -1385,7 +1374,7 @@ function triggerConfetti(isLegendary) {
 }
 function showToast(msg, icon, color) {
     const t = document.createElement('div');
-    t.className = "toast-message-dynamic";
+    t.style = "position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:#111827; color:white; padding:12px 24px; border-radius:30px; font-weight:600; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:2000; display:flex; gap:8px; align-items:center; animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);";
     t.innerHTML = `<i class="fa-solid fa-${icon}" style="color:${color}"></i> ${msg}`;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 4000);
@@ -1465,8 +1454,8 @@ async function fetchWikipedia(title, lat, lng) {
 function determineBestName(g) { const a = g.address; return a.amenity || a.building || a.tourism || a.historic || a.road || g.name || "Ubicación"; }
 function formatType(t) { return t.replace(/_/g, ' '); }
 function truncateText(t, l) { return t.length <= l ? t : t.substring(0, l) + '...'; }
-function showLoading() { initialState.style.display = 'none'; infoDisplay.innerHTML = '<div class="panel-loading-container"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>'; }
-function displayError(m) { infoDisplay.innerHTML = `<div class="panel-error-container">${m}</div>`; }
+function showLoading() { initialState.style.display = 'none'; infoDisplay.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>'; }
+function displayError(m) { infoDisplay.innerHTML = `<div style="padding:20px;text-align:center;color:red;">${m}</div>`; }
 
 /**
  * Chronos AI - Curiosity Generator

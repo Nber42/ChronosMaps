@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Gamification
+  xp        Int      @default(0)
+  level     Int      @default(1)
+  
+  // Relations
+  discoveries Discovery[]
+  routes      Route[]
+}
+
+model Discovery {
+  id          String   @id @default(uuid())
+  placeId     String   // Google Place ID or Custom UUID
+  name        String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  foundAt     DateTime @default(now())
+  rarity      String   @default("COMMON") // COMMON, RARE, LEGENDARY
+  xpGained    Int      @default(10)
+  
+  @@unique([userId, placeId])
+}
+
+model Route {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  creatorId   String
+  creator     User     @relation(fields: [creatorId], references: [id])
+  waypoints   Json     // Stored as JSON for prototype flexibility
+  createdAt   DateTime @default(now())
+}

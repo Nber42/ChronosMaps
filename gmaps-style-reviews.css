@@ -1,0 +1,56 @@
+/* REVIEWS STYLES */
+.gmaps-reviews-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #1e293b;
+}
+
+.gmaps-review-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.gmaps-review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.gmaps-review-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.gmaps-review-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.gmaps-review-author {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.gmaps-review-stars {
+    font-size: 10px;
+    color: #fbbf24;
+}
+
+.gmaps-review-text {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.gmaps-price-level {
+    color: #9ca3af;
+    margin-left: 6px;
+    font-weight: 500;
+}

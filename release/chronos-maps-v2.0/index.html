@@ -8,19 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-    <!-- Version: 1.0.2 - Visual Logic Update -->
     <!-- Production URL: https://nber42.github.io/ChronosMaps/ -->
     <link rel="canonical" href="https://nber42.github.io/ChronosMaps/">
 
-    <!-- Developed by Cris Navarro Cortes -->
-    <meta name="author" content="Cris Navarro Cortes">
-    <meta name="copyright" content="Cris Navarro Cortes">
-
     <title>Chronos Maps | Explorador Viral</title>
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https: data:; script-src 'self' https://maps.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 
 
     <!-- Google Fonts: Google Sans -->
@@ -30,9 +21,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <!-- Font Awesome (for legacy icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Legacy Styles (kept for compatibility) -->
     <link rel="stylesheet" href="style.css">
@@ -50,7 +39,6 @@
     <link rel="stylesheet" href="profile.css">
     <link rel="stylesheet" href="ai-styles.css">
     <link rel="stylesheet" href="auth-styles.css">
-    <link rel="stylesheet" href="security-styles.css">
 </head>
 
 <body>
@@ -69,7 +57,7 @@
     <!-- Header Bar (Google Maps style) -->
     <header class="gmaps-header">
         <!-- Hamburger Menu -->
-        <div class="u-relative">
+        <div style="position: relative;">
             <button class="gmaps-menu-btn" id="menu-btn" aria-label="Menu">
                 <span class="material-icons">menu</span>
             </button>
@@ -104,7 +92,7 @@
                         <span>Ayuda y comentarios</span>
                     </li>
                     <div class="gmaps-drawer-divider"></div>
-                    <li class="gmaps-drawer-item u-text-danger" onclick="AuthSystem.logout(); closeDrawer();">
+                    <li class="gmaps-drawer-item" onclick="AuthSystem.logout(); closeDrawer();" style="color: #ef4444;">
                         <span class="material-icons">logout</span>
                         <span>Cerrar Sesión</span>
                     </li>
@@ -131,7 +119,7 @@
         </div>
 
         <!-- Space Filler -->
-        <div class="u-flex-1"></div>
+        <div style="flex:1"></div>
 
         <!-- User Avatar -->
         <div class="profile-avatar-modern" id="avatar-btn" onclick="handleProfileClick()">
@@ -147,8 +135,8 @@
 
     <!-- Side Panel (Drawer) -->
     <aside class="gmaps-side-panel" id="side-panel">
-        <div id="info-display" class="u-hidden"></div> <!-- Legacy hidden anchor for compatibility -->
-        <div id="initial-state" class="u-hidden"></div> <!-- Legacy hidden anchor for compatibility -->
+        <div id="info-display" style="display:none;"></div> <!-- Legacy hidden anchor for compatibility -->
+        <div id="initial-state" style="display:none;"></div> <!-- Legacy hidden anchor for compatibility -->
         <div id="panel-back-nav" class="panel-back-nav hidden">
             <button class="back-button" onclick="goBack()">
                 <span class="material-icons">arrow_back</span>
@@ -237,18 +225,13 @@
             <input type="checkbox" id="rare-only-toggle" onchange="toggleRareOnly(this.checked)">
             <span>Solo lugares raros</span>
         </label>
-        <label class="gmaps-layer-item">
-            <input type="checkbox" id="rifts-toggle" checked
-                onchange="if(window.RiftSystem) window.RiftSystem.toggleVisibility(this.checked)">
-            <span>Grietas Temporales</span>
-        </label>
     </div>
 
     <!-- Legacy Modals (kept for compatibility) -->
     <div id="profile-creation-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <h2 class="modal-title">Nueva Identidad</h2>
-            <p class="u-modal-subtitle">Crea tu tarjeta de explorador para guardar tus
+            <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Crea tu tarjeta de explorador para guardar tus
                 hallazgos.</p>
             <div class="avatar-grid">
                 <div class="avatar-option" onclick="selectAvatar('🤠')">🤠</div>
@@ -266,8 +249,8 @@
     <div id="chronodex-modal-v2" class="chronodex-modal-overlay hidden">
         <div class="chronodex-modal-card wide">
             <div class="modal-header">
-                <h2 class="modal-title u-margin-0"><i class="fa-solid fa-book-journal-whills u-icon-chronodex"></i>
-                    Chronodex
+                <h2 class="modal-title" style="margin:0"><i class="fa-solid fa-book-journal-whills"
+                        style="color:#f59e0b;"></i> Chronodex
                 </h2>
                 <button class="close-btn"
                     onclick="document.getElementById('chronodex-modal-v2').classList.add('hidden')"><i
@@ -282,7 +265,7 @@
     <div id="tours-modal" class="modal-overlay hidden">
         <div class="modal-card wide">
             <div class="modal-header">
-                <h2 class="modal-title"><i class="fa-solid fa-route u-icon-tours"></i> Rutas Guiadas</h2>
+                <h2 class="modal-title"><i class="fa-solid fa-route" style="color:#8b5cf6;"></i> Rutas Guiadas</h2>
                 <button class="close-btn" onclick="TourSystem.closeModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div style="margin-bottom:16px; font-size:13px; color:#6b7280;">Explora Barcelona con nuestras rutas
@@ -291,166 +274,83 @@
         </div>
     </div>
 
+    <!-- Profile Overlay (AAA System) -->
     <div id="profile-overlay" class="profile-overlay hidden">
         <!-- Header Nav -->
         <div class="profile-header-nav">
-            <button class="m-btn-icon" onclick="ProfileSystem.close()">
-                <span class="material-icons">close</span> <span>Cerrar</span>
+            <button class="icon-btn-glass" onclick="ProfileSystem.close()">
+                <span class="material-icons" style="vertical-align: middle;">close</span> Cerrar
             </button>
-            <div class="u-flex-1"></div>
-            <button class="m-btn-icon" onclick="ProfileSystem.openSettings()">
-                <span class="material-icons">settings</span>
+            <div style="flex:1"></div>
+            <button class="icon-btn-glass"
+                onclick="savePlayerState(); showToast('Progreso guardado', 'check', '#10b981')">
+                <span class="material-icons" style="vertical-align: middle;">cloud_upload</span> Guardar
             </button>
         </div>
 
-        <!-- Section 1: Hero Header -->
-        <div class="profile-hero-minimal">
-            <div class="p-avatar-main-container">
-                <div class="p-avatar-main" id="p-avatar">🤠</div>
-                <div class="status-badge"></div>
+        <!-- Hero Section -->
+        <div class="profile-hero">
+            <div id="p-avatar-container" class="p-avatar-wrapper border-bronze">
+                <span id="p-avatar">🤠</span>
+                <div class="online-indicator"></div>
             </div>
-            <div class="p-identity-minimal">
-                <span class="p-rank-text" id="p-title">Explorador Novato</span>
+            <div class="p-identity">
+                <div id="p-title" class="p-title-badge">EXPLORADOR NOVATO</div>
                 <h1 id="p-username">@Agente</h1>
-                <button class="m-btn-edit" onclick="ProfileSystem.toggleEditMode()">✏️ Editar Perfil</button>
             </div>
         </div>
 
-        <!-- Section 2: Stats Grid -->
-        <section class="stats-grid-minimal">
-            <div class="stat-card-m">
-                <span class="stat-icon">📍</span>
-                <span class="stat-value" id="stat-count-places">0</span>
-                <span class="stat-label">Lugares</span>
+        <!-- Level & Progress -->
+        <div class="level-section">
+            <div class="level-info-row">
+                <span id="p-level-display" style="color: white; font-weight: 800; font-size: 14px;">NIVEL 1</span>
+                <span id="p-xp-text" style="color: #9ca3af; font-size: 12px;">0 / 1000 XP</span>
             </div>
-            <div class="stat-card-m">
-                <span class="stat-icon">🏆</span>
-                <span class="stat-value" id="stat-count-badges">0</span>
-                <span class="stat-label">Logros</span>
+            <div class="xp-bar-bg">
+                <div id="p-xp-bar" class="xp-bar-fill" style="width: 0%"></div>
             </div>
-            <div class="stat-card-m">
-                <span class="stat-icon">🔥</span>
-                <span class="stat-value" id="stat-count-streak">1d</span>
-                <span class="stat-label">Racha</span>
-            </div>
-            <div class="stat-card-m">
-                <span class="stat-icon">⭐</span>
-                <span class="stat-value" id="stat-count-xp-total">0</span>
-                <span class="stat-label">XP Total</span>
-            </div>
-        </section>
+        </div>
 
-        <!-- Section 3: Progress -->
-        <section class="level-progress-minimal">
-            <div class="level-header-m">
-                <span id="p-level-display">NIVEL 1</span>
-                <span id="p-xp-text">0 / 1000 XP</span>
+        <!-- Quick Stats -->
+        <div class="quick-stats-row">
+            <div class="q-stat">
+                <span id="stat-count-places" class="q-val">0</span>
+                <span class="q-label">Lugares</span>
             </div>
-            <div class="progress-bar-m-bg">
-                <div id="p-xp-bar" class="progress-bar-m-fill" style="--progress-pct: 0%;"></div>
+            <div class="q-stat">
+                <span id="stat-count-checkins" class="q-val">0</span>
+                <span class="q-label">Visitas</span>
             </div>
-        </section>
-
-        <!-- Section 4: Achievements -->
-        <section class="achievements-minimal">
-            <h3 class="section-title-m">🎖️ Logros Destacados</h3>
-            <div id="badges-scroll-container" class="badges-scroll">
-                <!-- Badges loaded dynamically -->
+            <div class="q-stat">
+                <span id="stat-count-streak" class="q-val">1d</span>
+                <span class="q-label">Racha</span>
             </div>
-        </section>
+        </div>
 
-        <!-- Section 5: Activity -->
-        <section class="activity-minimal">
-            <h3 class="section-title-m">📊 Actividad Reciente</h3>
-            <div id="activity-list" class="activity-list-m">
-                <div class="activity-item-m">
-                    <span class="act-icon-m">🏛️</span>
-                    <div class="act-content-m">
-                        <p>Te uniste a Chronos Maps</p>
-                        <small>¡Bienvenido explorador!</small>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <!-- Bio Box -->
+        <div class="p-bio-box" style="margin-top: 10px;">
+            <p id="p-bio">Explorando el mundo un lugar a la vez 🌍</p>
+            <small id="p-joined">Miembro desde: --/--/----</small>
+        </div>
 
-        <!-- Section 6: Settings (Accordion) -->
-        <section class="settings-minimal">
-            <h3 class="section-title-m">⚙️ Ajustes y Configuración</h3>
+        <!-- Tabs -->
+        <div class="profile-tabs">
+            <button class="profile-tab-btn active" data-tab="discoveries">Descubrimientos</button>
+            <button class="profile-tab-btn" data-tab="badges">Insignias</button>
+        </div>
 
-            <div class="setting-group-m">
-                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
-                    <span>Información Personal</span>
-                    <span class="material-icons">expand_more</span>
-                </button>
-                <div class="setting-content-m">
-                    <div class="setting-item-m">
-                        <label>Email</label>
-                        <span id="p-email-display" class="u-text-muted">usuario@chronos.app</span>
-                    </div>
-                    <div class="setting-item-m">
-                        <label>Miembro desde</label>
-                        <span id="p-joined-display" class="u-text-muted">--/--/----</span>
-                    </div>
-                    <div class="setting-item-m">
-                        <label>Bio</label>
-                        <p id="p-bio-display" class="u-font-12 u-text-muted">...</p>
-                    </div>
-                </div>
+        <!-- Content Area -->
+        <div class="profile-content-scroll">
+            <!-- Discoveries Tab -->
+            <div id="tab-discoveries" class="profile-tab-content">
+                <div class="empty-msg">Cargando descubrimientos...</div>
             </div>
 
-            <div class="setting-group-m">
-                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
-                    <span>Preferencias</span>
-                    <span class="material-icons">expand_more</span>
-                </button>
-                <div class="setting-content-m">
-                    <div class="setting-item-m">
-                        <label>Modo Oscuro</label>
-                        <label class="m-switch">
-                            <input type="checkbox" onchange="ProfileSystem.toggleDarkMode(this.checked)">
-                            <span class="m-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item-m">
-                        <label>Notificaciones</label>
-                        <label class="m-switch">
-                            <input type="checkbox" checked>
-                            <span class="m-slider"></span>
-                        </label>
-                    </div>
-                </div>
+            <!-- Badges Tab -->
+            <div id="tab-badges" class="profile-tab-content hidden">
+                <div class="empty-msg">Cargando insignias...</div>
             </div>
-
-            <div class="setting-group-m">
-                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
-                    <span>Privacidad y Seguridad</span>
-                    <span class="material-icons">expand_more</span>
-                </button>
-                <div class="setting-content-m">
-                    <div class="setting-item-m">
-                        <label>Perfil Público</label>
-                        <label class="m-switch">
-                            <input type="checkbox" checked>
-                            <span class="m-slider"></span>
-                        </label>
-                    </div>
-                    <button class="m-btn-edit u-w-full u-margin-top-10">Cambiar Contraseña</button>
-                </div>
-            </div>
-
-            <div class="setting-group-m">
-                <button class="setting-header-m" onclick="ProfileSystem.toggleAccordion(this)">
-                    <span>Colección y Datos</span>
-                    <span class="material-icons">expand_more</span>
-                </button>
-                <div class="setting-content-m">
-                    <button class="m-btn-edit u-w-full" onclick="ProfileSystem.exportData()">💾 Exportar mis
-                        datos</button>
-                    <button class="m-btn-edit u-w-full u-text-danger u-margin-top-10">🗑️ Eliminar cuenta</button>
-                </div>
-            </div>
-
-        </section>
+        </div>
     </div>
 
     <!-- Auth Modal -->
@@ -501,58 +401,6 @@
         </div>
     </div>
 
-    <!-- Security & Sanitization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
-        integrity="sha512-H+SGo399L6U6N6VunmB99zO8mX6p07u8mU6yvU1H8jW1l0X0mU6yvU1H8jW1l0X0"
-        crossorigin="anonymous"></script>
-    <script>
-        // Global Safety Wrapper
-        window.safeHTML = function (content) {
-            if (typeof DOMPurify === 'undefined') return content;
-            return DOMPurify.sanitize(content);
-        };
-    </script>
-
-    <div id="gdpr-banner" class="gdpr-banner">
-        <div class="gdpr-content">
-            <div class="gdpr-title"><span class="material-icons u-link-privacy">security</span> Privacidad y
-                Cookies</div>
-            <div class="gdpr-text">Usamos tu geolocalización para mostrarte lugares históricos cercanos y cookies para
-                guardar tu progreso en el Chronodex. Consulta nuestra <a href="privacy.html"
-                    class="u-link-privacy">Política de Privacidad</a>.</div>
-        </div>
-        <div class="gdpr-actions">
-            <button class="gdpr-btn gdpr-btn-secondary"
-                onclick="document.getElementById('gdpr-banner').classList.remove('active')">Rechazar</button>
-            <button class="gdpr-btn gdpr-btn-primary" onclick="acceptGDPR()">Aceptar y Explorar</button>
-        </div>
-    </div>
-
-    <!-- Security Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
-        integrity="sha512-H+SGo399L6U6N6VunmB99zO8mX6p07u8mU6yvU1H8jW1l0X0mU6yvU1H8jW1l0X0"
-        crossorigin="anonymous"></script>
-    <script>
-        // Global Safety Wrapper (Paso 5)
-        window.safeHTML = function (content) {
-            if (typeof DOMPurify === 'undefined') return content;
-            return DOMPurify.sanitize(content);
-        };
-    </script>
-
-    <script>
-        window.addEventListener('load', () => {
-            if (!localStorage.getItem('chronos_gdpr')) {
-                setTimeout(() => document.getElementById('gdpr-banner').classList.add('active'), 2000);
-            }
-        });
-        function acceptGDPR() {
-            localStorage.setItem('chronos_gdpr', 'true');
-            document.getElementById('gdpr-banner').classList.remove('active');
-            if (window.goToMyLocation) window.goToMyLocation();
-        }
-    </script>
-
     <!-- Scripts -->
     <script src="auth.js"></script>
     <!-- Removed legacy chronodex-fix.js -->
@@ -561,10 +409,8 @@
     <script src="chronodex.js?v=2"></script>
     <script src="rifts.js"></script>
     <script src="poster_generator.js"></script>
-    <script src="voice_guide.js"></script>
     <script src="profile.js"></script>
     <script src="tours.js"></script>
-    <script src="nearby-scanner.js"></script>
     <script src="google-services.js"></script>
     <script src="openai-services.js"></script>
     <script src="duels.js"></script>
@@ -574,24 +420,10 @@
     <!-- Marker Clusterer -->
     <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
 
-    <!-- Google Maps API Loader (Secure Dynamic) -->
-    <script>
-        (function () {
-            fetch('/api/config')
-                .then(r => r.json())
-                .then(config => {
-                    const script = document.createElement('script');
-                    script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsKey}&callback=initApp&libraries=places`;
-                    script.async = true;
-                    script.defer = true;
-                    document.head.appendChild(script);
-                })
-                .catch(err => {
-                    console.error("Failed to load config:", err);
-                    if (typeof handleAuthFailure === 'function') handleAuthFailure();
-                });
-        })();
-    </script>
+    <!-- Google Maps API -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt3-_T5sn-4xua9SdE7D7ENrXly3R4qAo&callback=initApp&libraries=places">
+        </script>
 
     <script>
         function handleAuthFailure() {

@@ -1,0 +1,504 @@
+/* Styles extracted for CSP compliance and security remediation */
+
+/* GDPR BANNER */
+.gdpr-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    z-index: 10000;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    transform: translateY(150%);
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.gdpr-banner.active {
+    transform: translateY(0);
+}
+
+.gdpr-content {
+    flex: 1;
+}
+
+.gdpr-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gdpr-text {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.gdpr-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.gdpr-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.gdpr-btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.gdpr-btn-secondary {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+@media (max-width: 600px) {
+    .gdpr-banner {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}
+
+/* UTILITY CLASSES */
+.u-relative {
+    position: relative;
+}
+
+.u-text-danger {
+    color: #ef4444;
+}
+
+.u-flex-1 {
+    flex: 1;
+}
+
+.u-hidden {
+    display: none !important;
+}
+
+.u-margin-0 {
+    margin: 0 !important;
+}
+
+.u-valign-middle {
+    vertical-align: middle;
+}
+
+.u-margin-top-10 {
+    margin-top: 10px;
+}
+
+.u-link-privacy {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+/* CHRONODEX & GAMIFICATION */
+.u-icon-chronodex {
+    color: #f59e0b !important;
+}
+
+.u-icon-tours {
+    color: #8b5cf6 !important;
+}
+
+.u-level-label {
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.u-xp-label {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.rarity-text-dynamic {
+    color: var(--rarity-color, #9ca3af);
+}
+
+.chronodex-progress-title {
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.chronodex-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.chronodex-progress-label {
+    color: #aaa;
+}
+
+.chronodex-stats-row {
+    display: flex;
+    gap: 12px;
+    color: #aaa;
+}
+
+.locked-label-primary {
+    font-weight: bold;
+}
+
+.locked-label-secondary {
+    font-size: 10px;
+}
+
+/* TOURS & MODALS */
+.tour-modal-header-icon {
+    color: #f59e0b;
+}
+
+.tour-city-header {
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.tour-topic-container {
+    margin-bottom: 24px;
+    display: flex;
+    gap: 10px;
+    background: #f1f5f9;
+    padding: 15px;
+    border-radius: 15px;
+}
+
+.tour-topic-input {
+    flex: 1;
+    border: 1px solid #cbd5e1;
+}
+
+.tour-topic-btn {
+    min-width: 120px;
+}
+
+.tour-sample-label {
+    color: #94a3b8;
+    font-weight: normal;
+}
+
+/* NARRATOR BUTTON */
+.gmaps-narrator-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: #f1f3f4;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    color: #1a73e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.gmaps-narrator-btn:hover {
+    background: #e8f0fe;
+}
+
+.gmaps-narrator-btn .material-icons {
+    font-size: 20px;
+}
+
+/* RIFTS */
+.rift-header-dynamic {
+    background: var(--rift-color, #8b5cf6);
+}
+
+/* OVERRIDES FOR CSP */
+#chronodex-modal-v2 {
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+#chronodex-modal-v2 .chronodex-modal-card {
+    background: #0f172a !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* APP UTILS */
+.u-h-full {
+    height: 100% !important;
+}
+
+.u-w-50 {
+    width: 50px !important;
+}
+
+.u-text-center {
+    text-align: center !important;
+}
+
+.u-margin-auto {
+    margin: 0 auto !important;
+}
+
+.u-font-14 {
+    font-size: 14px !important;
+}
+
+.u-font-12 {
+    font-size: 12px !important;
+}
+
+.u-font-18 {
+    font-size: 18px !important;
+}
+
+.u-font-40 {
+    font-size: 40px !important;
+}
+
+.u-font-bold {
+    font-weight: bold !important;
+}
+
+.u-text-muted {
+    color: #666 !important;
+}
+
+.u-text-success {
+    color: #10b981 !important;
+}
+
+.u-padding-10 {
+    padding: 10px !important;
+}
+
+.u-padding-20 {
+    padding: 20px !important;
+}
+
+.u-padding-40 {
+    padding: 40px !important;
+}
+
+.poi-card-actions-special {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+}
+
+.infowindow-container {
+    padding: 5px;
+}
+
+.infowindow-curated {
+    padding: 10px;
+    font-family: sans-serif;
+}
+
+.infowindow-tag-legendary {
+    color: #f59e0b;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.infowindow-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin: 5px 0;
+}
+
+.infowindow-subtitle {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.panel-loading-container {
+    padding: 40px;
+    text-align: center;
+}
+
+.panel-error-container {
+    padding: 20px;
+    text-align: center;
+    color: #d32f2f;
+}
+
+.panel-error-icon {
+    font-size: 40px;
+}
+
+/* OPENAI SETUP & AI PANELS */
+.api-setup-info-box {
+    background: #f0f9ff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    border-left: 4px solid #3b82f6;
+}
+
+.api-setup-input {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.api-setup-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-personal-save {
+    flex: 1;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.btn-personal-clear {
+    flex: 1;
+    padding: 12px;
+    margin-top: 8px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.setup-instructions-box {
+    margin-top: 16px;
+    font-size: 13px;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.btn-modal-close-generic {
+    margin-top: 12px;
+    background: #ccc;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.modal-card-openai {
+    position: relative;
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-close-x {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.u-stars-gold {
+    border-left-color: #FFD700;
+}
+
+.u-text-gold {
+    font-weight: 600;
+    color: #856404;
+    font-size: 16px;
+}
+
+.u-margin-left-10 {
+    margin-left: 10px;
+}
+
+.u-margin-right-8 {
+    margin-right: 8px;
+}
+
+.pano-container-full {
+    width: 100%;
+    height: 100%;
+}
+
+.btn-discover-save {
+    width: 100%;
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.xp-badge-inline {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.curiosity-number-dynamic {
+    background: var(--rarity-color, #667eea);
+}
+
+.chronedex-empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.tour-btn-bg {
+    background: #8b5cf6 !important;
+}
+
+/* COMPASS & NAV */
+.narrator-active {
+    border-color: #2563eb !important;
+}
+
+/* GOOGLE SERVICES EXTRA */
+.opacity-0 {
+    opacity: 0 !important;
+}
+
+.opacity-1 {
+    opacity: 1 !important;
+}
+
+/* TOASTS */
+.toast-message-dynamic {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}

@@ -188,7 +188,7 @@ const Chronodex = {
                 <div class="discovery-text">
                     <h2>¡NUEVO DESCUBRIMIENTO!</h2>
                     <p class="place-name-large">${place.name}</p>
-                    <p class="rarity-text-large rarity-text-dynamic" style="--rarity-color:${place.rarity.color}">${place.rarity.label}</p>
+                    <p class="rarity-text-large" style="color:${place.rarity.color}">${place.rarity.label}</p>
                     <p class="xp-gained">+${place.rarity.xp} XP</p>
                 </div>
                 
@@ -236,7 +236,16 @@ const Chronodex = {
         const modal = document.getElementById('chronodex-modal-v2');
         if (!modal) return;
 
-        // Classes are now handled in CSS for #chronodex-modal-v2
+        // Failsafe inline styles to override any white theme
+        modal.style.background = 'rgba(0,0,0,0.85)';
+        modal.style.backdropFilter = 'blur(12px)';
+
+        const card = modal.querySelector('.chronodex-modal-card');
+        if (card) {
+            card.style.background = '#0f172a';
+            card.style.color = 'white';
+            card.style.border = '1px solid rgba(255,255,255,0.1)';
+        }
 
         this.renderChronodexGrid();
 
@@ -263,16 +272,16 @@ const Chronodex = {
         // Add Progress Header
         const headerHTML = `
             <div class="chronodex-progress-section">
-                <div class="chronodex-progress-title">
+                <div style="display:flex; justify-content:space-between; color:white; font-size:14px; font-weight:bold; margin-bottom:8px;">
                     <span>PROGRESO GLOBAL</span>
                     <span>${current} / ${total}</span>
                 </div>
                 <div class="chronodex-progress-bar-bg">
                     <div class="chronodex-progress-bar-fill" style="width: ${pct}%"></div>
                 </div>
-                <div class="chronodex-progress-meta">
-                    <span class="chronodex-progress-label">${pct}% completado</span>
-                    <div class="chronodex-stats-row">
+                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:12px;">
+                    <span style="color:#aaa;">${pct}% completado</span>
+                    <div style="display:flex; gap:12px; color:#aaa;">
                         <span>⭐⭐ ${rareCounts.common}</span>
                         <span>⭐⭐⭐ ${rareCounts.rare}</span>
                         <span>⭐⭐⭐⭐⭐ ${rareCounts.legendary}</span>
@@ -348,8 +357,8 @@ const Chronodex = {
             locked.innerHTML = `
                 <div class="locked-content">
                     <span class="material-icons locked-icon">lock</span>
-                    <span class="locked-label-primary">???</span>
-                    <span class="locked-label-secondary">Por descubrir</span>
+                    <span style="font-weight:bold;">???</span>
+                    <span style="font-size:10px;">Por descubrir</span>
                 </div>
             `;
             cardsGrid.appendChild(locked);

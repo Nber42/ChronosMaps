@@ -25,13 +25,13 @@ class POIQuickCard {
                     <!-- Image Wrapper with Compare Toggle -->
                     <div class="poi-img-wrapper" id="poi-img-wrapper">
                         <!-- Images injected here -->
-                        <div class="skeleton skeleton-img u-h-full"></div>
+                        <div class="skeleton skeleton-img" style="height:100%"></div>
                     </div>
 
                     <!-- Body -->
                     <div class="poi-info-body">
                         <div class="poi-tags" id="poi-tags">
-                            <div class="skeleton skeleton-text u-w-50"></div>
+                            <div class="skeleton skeleton-text" style="width:50px"></div>
                         </div>
 
                         <h2 class="poi-title" id="poi-title">
@@ -39,7 +39,7 @@ class POIQuickCard {
                         </h2>
                         
                         <!-- AI Insight Section -->
-                        <div id="poi-ai-content" class="u-hidden"></div>
+                        <div id="poi-ai-content" style="display:none;"></div>
                         
                         <div class="poi-subtitle" id="poi-subtitle">
                             <div class="skeleton skeleton-text"></div>
@@ -77,12 +77,12 @@ class POIQuickCard {
     }
 
     renderSkeleton() {
-        document.getElementById('poi-img-wrapper').innerHTML = '<div class="skeleton skeleton-img u-h-full"></div>';
+        document.getElementById('poi-img-wrapper').innerHTML = '<div class="skeleton skeleton-img" style="height:100%"></div>';
         // Reset text to empty so skeleton is visible if no data
         document.getElementById('poi-title').innerHTML = '<div class="skeleton skeleton-title"></div>';
         document.getElementById('poi-subtitle').innerHTML = '<div class="skeleton skeleton-text"></div>';
-        document.getElementById('poi-tags').innerHTML = '<div class="skeleton skeleton-text u-w-50"></div>';
-        document.getElementById('poi-ai-content').classList.add('u-hidden');
+        document.getElementById('poi-tags').innerHTML = '<div class="skeleton skeleton-text" style="width:50px"></div>';
+        document.getElementById('poi-ai-content').style.display = 'none';
         document.getElementById('poi-actions').innerHTML = `
             <div class="skeleton skeleton-btn"></div>
             <div class="skeleton skeleton-btn"></div>
@@ -122,15 +122,15 @@ class POIQuickCard {
         // 3. AI Insight
         const aiBox = document.getElementById('poi-ai-content');
         if (fullData.aiCuriosity) {
-            aiBox.innerHTML = window.safeHTML(`
+            aiBox.innerHTML = `
                 <div class="poi-ai-box">
                     <div class="poi-ai-header"><i class="material-icons">auto_awesome</i> Chronos AI</div>
                     <div class="poi-ai-text">"${fullData.aiCuriosity}"</div>
                 </div>
-            `);
-            aiBox.classList.remove('u-hidden');
+            `;
+            aiBox.style.display = 'block';
         } else {
-            aiBox.classList.add('u-hidden');
+            aiBox.style.display = 'none';
         }
 
         document.getElementById('poi-subtitle').textContent = fullData.direccion || "";
@@ -144,7 +144,7 @@ class POIQuickCard {
         tagsContainer.innerHTML = `
             <span class="poi-badge rarity-${rId}">${rLabel}</span>
             <span class="poi-category">
-                <i class="material-icons u-font-14">place</i> 
+                <i class="material-icons" style="font-size:14px">place</i> 
                 ${fullData.types ? (fullData.types[0] || 'Lugar').replace('_', ' ') : 'Lugar'}
             </span>
         `;
@@ -188,7 +188,7 @@ class POIQuickCard {
 
         actionsContainer.innerHTML = `
             ${discoverBtn}
-            <button class="poi-btn poi-btn-secondary poi-card-actions-special" onclick="POIQuickCardInstance.handleViewMore()">
+            <button class="poi-btn poi-btn-secondary" onclick="POIQuickCardInstance.handleViewMore()" style="background:#e0f2fe; color:#0369a1;">
                 <span class="material-icons poi-btn-icon">menu_book</span>
                 <span>Saber Más</span>
             </button>
